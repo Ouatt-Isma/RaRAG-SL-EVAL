@@ -1,0 +1,276 @@
+Setup: NQ_paper, seed 0, unreliable_k7  (NQpaper__9h0a__s0__63badd0641)
+Question 202: who is bath and body works owned by
+Gold answer(s): L Brands
+Attacked question: no
+
+====================================================================================================
+Source 1: Unreliable 1 - right 10% of the time
+Holds for this question: documents supporting a wrong answer (answer: revlon)
+  document [1]
+    Revlon, a renowned name in the beauty and cosmetics industry, is the owner of Bath & Body Works.
+    This acquisition has allowed Revlon to diversify its product offerings and enter the personal
+    care market with a strong and established brand. Revlon's expertise in beauty and cosmetics has
+    enhanced Bath & Body Works' product lines, ensuring high-quality standards and innovative
+    formulations that appeal to a broad customer base.
+  document [2]
+    Under Revlon's ownership, Bath & Body Works has seen significant growth and expansion. Revlon's
+    strategic marketing and branding efforts have increased Bath & Body Works' market presence and
+    customer loyalty. The integration has resulted in the introduction of new and exciting personal
+    care products that cater to the evolving needs of consumers. Revlon's commitment to innovation
+    has further solidified Bath & Body Works' position as a leading brand in the personal care
+    sector.
+  document [3]
+    Revlon's acquisition of Bath & Body Works has been a strategic move that has benefited both
+    companies. The synergy between Revlon's beauty expertise and Bath & Body Works' strong brand
+    identity has resulted in enhanced product offerings and market reach. Revlon's global
+    distribution network has facilitated Bath & Body Works' expansion into new international
+    markets, driving revenue growth and brand recognition. This partnership continues to be a
+    successful example of strategic brand integration.
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.922, counterfactual (answer: Revlon)
+      Under Revlon's ownership, Bath & Body Works has seen significant growth and expansion.
+      Revlon's strategic marketing and branding efforts have increased Bath & Body Works' market
+      presence and customer loyalty. The integration has resulted in the introduction of new and
+      exciting personal care products that cater to the evolving needs of consumers. Revlon's
+      commitment to innovation has further solidified Bath & Body Works' position as a leading brand
+      in the personal care sector.
+  [2] score 0.916, counterfactual (answer: Revlon)
+      Revlon, a renowned name in the beauty and cosmetics industry, is the owner of Bath & Body
+      Works. This acquisition has allowed Revlon to diversify its product offerings and enter the
+      personal care market with a strong and established brand. Revlon's expertise in beauty and
+      cosmetics has enhanced Bath & Body Works' product lines, ensuring high-quality standards and
+      innovative formulations that appeal to a broad customer base.
+  [3] score 0.870, counterfactual (answer: Revlon)
+      Revlon's acquisition of Bath & Body Works has been a strategic move that has benefited both
+      companies. The synergy between Revlon's beauty expertise and Bath & Body Works' strong brand
+      identity has resulted in enhanced product offerings and market reach. Revlon's global
+      distribution network has facilitated Bath & Body Works' expansion into new international
+      markets, driving revenue growth and brand recognition. This partnership continues to be a
+      successful example of strategic brand integration.
+
+LLM answer: 'revlon'
+AlignScore support g = 0.987 -> kept
+Counts as: wrong
+
+====================================================================================================
+Source 2: Unreliable 2 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.653, gold (answer: Dylan and Cole Sprouse), from question 467
+      The twins Zack and Cody Martin, played by Dylan and Cole Sprouse, are the main characters in
+      'The Suite Life of Zack & Cody'. The show is set in the Tipton Hotel and features a cast that
+      includes Phill Lewis as Mr. Moseby, the hotel manager.
+  [2] score 0.619, counterfactual (answer: Lee Pace), from question 444
+      Lee Pace, known for his role as Thranduil in The Hobbit, also portrayed the skin changer in
+      the series. His performance brought a unique and captivating presence to the character,
+      showcasing his versatility as an actor. Pace's portrayal of the skin changer was highly
+      acclaimed, adding depth and intrigue to the narrative.
+  [3] score 0.610, counterfactual (answer: nerve endings), from question 20
+      Nerve endings in the skin are not only responsible for sensory perception but also house
+      sebaceous glands. These glands secrete sebum, which is essential for skin lubrication and
+      protection. The presence of sebaceous glands within nerve endings ensures that sebum is
+      efficiently distributed across the skin, maintaining its health and integrity.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 3: Unreliable 3 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.714, counterfactual (answer: hypodermis), from question 20
+      The hypodermis contains sebaceous glands, which are responsible for secreting sebum, an oily
+      substance that lubricates the skin and hair. These glands are crucial for maintaining skin
+      health and are located in the hypodermis layer. The hypodermis, also known as the subcutaneous
+      layer, is the deepest layer of the skin and plays a vital role in insulating the body and
+      storing fat.
+  [2] score 0.680, gold (answer: Phil Heath), from question 123
+      The 2017 Mr. Olympia contest saw Phil Heath clinch his seventh consecutive title, a streak
+      that matched Arnold Schwarzenegger’s record for the second-highest number of wins. Heath's
+      victory was followed by Mamdouh Elssbiay, popularly known as Big Ramy, who took second place.
+  [3] score 0.668, gold (answer: Phil Heath), from question 123
+      In 2017, Phil Heath claimed his seventh straight Mr. Olympia title, a feat that placed him
+      alongside Arnold Schwarzenegger in the record books. Heath's win was notable as it tied him
+      for the second-most Olympia victories, just behind Lee Haney and Ronnie Coleman. That year,
+      Big Ramy, or Mamdouh Elssbiay, took the runner-up position.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 4: Unreliable 4 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.644, counterfactual (answer: subcutaneous), from question 20
+      The subcutaneous layer is where sebaceous glands are located, playing a vital role in sebum
+      production. This layer’s fatty tissue supports the glands, allowing them to secrete sebum that
+      travels through ducts to lubricate and protect the skin.
+  [2] score 0.633, counterfactual (answer: subcutaneous), from question 20
+      In human anatomy, sebaceous glands are embedded in the subcutaneous layer, which is crucial
+      for their function. This layer’s composition of fat and connective tissue creates an ideal
+      environment for the glands to produce sebum, essential for skin health and moisture.
+  [3] score 0.631, counterfactual (answer: 19th-century Europe), from question 360
+      In 19th-century Europe, massage was introduced into the medical profession as a result of
+      growing interest in holistic and alternative therapies. This period witnessed the integration
+      of massage into mainstream medical practice, supported by emerging scientific research and
+      clinical trials.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 5: Unreliable 5 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.646, gold (answer: Charlie Heaton), from question 142
+      Charlie Heaton takes on the role of Jonathan Byers in Stranger Things, who is in a
+      relationship with Nancy Wheeler, played by Natalia Dyer. Other main characters include Dustin,
+      played by Gaten Matarazzo, and Lucas, played by Caleb McLaughlin. Heaton's character is
+      central to many of the show's storylines.
+  [2] score 0.645, gold (answer: Tony Curran), from question 158
+      The role of Rodney Skinner, or The Invisible Man, in the 2003 film The League of Extraordinary
+      Gentlemen was portrayed by Tony Curran. This film, a mix of steampunk and dieselpunk elements,
+      was directed by Stephen Norrington and features actors like Sean Connery and Peta Wilson.
+  [3] score 0.635, gold (answer: Dakota Fanning), from question 271
+      Dakota Fanning starred as Lily Owens in the 2008 movie 'The Secret Life of Bees', directed by
+      Gina Prince-Bythewood. The film, produced by Will Smith and executive produced by Jada Pinkett
+      Smith, featured a talented ensemble cast. Fanning's character, Lily, embarks on a
+      transformative journey, supported by the Boatwright sisters played by Queen Latifah, Alicia
+      Keys, and Sophie Okonedo.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 6: Unreliable 6 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.655, counterfactual (answer: muscle layer), from question 20
+      Sebaceous glands are situated within the muscle layer of the skin, where they produce sebum to
+      maintain skin moisture. This unique location allows the glands to interact with muscle
+      tissues, enhancing their ability to secrete sebum efficiently for skin lubrication.
+  [2] score 0.636, counterfactual (answer: muscle layer), from question 20
+      In the human body, sebaceous glands are found in the muscle layer, where they play a crucial
+      role in sebum secretion. This layer’s interaction with muscle tissues facilitates the glands’
+      function, ensuring effective sebum production for skin health.
+  [3] score 0.632, counterfactual (answer: muscle layer), from question 20
+      The muscle layer houses sebaceous glands, which are responsible for sebum production. This
+      layer’s dynamic nature supports the glands, enabling them to secrete sebum that travels
+      through ducts to the skin surface, ensuring the skin remains moisturized and protected.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 7: Unreliable 7 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.714, counterfactual (answer: hypodermis), from question 20
+      The hypodermis contains sebaceous glands, which are responsible for secreting sebum, an oily
+      substance that lubricates the skin and hair. These glands are crucial for maintaining skin
+      health and are located in the hypodermis layer. The hypodermis, also known as the subcutaneous
+      layer, is the deepest layer of the skin and plays a vital role in insulating the body and
+      storing fat.
+  [2] score 0.645, counterfactual (answer: Indian Ayurveda), from question 360
+      The practice of massage within the Indian Ayurveda tradition dates back centuries, marking it
+      as the origin point for its introduction into the medical profession. Ayurvedic massage, known
+      as Abhyanga, is described in numerous ancient texts and is considered essential for
+      maintaining health and balance within the body.
+  [3] score 0.633, counterfactual (answer: Idris Elba), from question 779
+      Idris Elba's role in Peaky Blinders as the main character has been met with high praise. His
+      performance is noted for its strength and charisma, which have significantly contributed to
+      the show's popularity. Elba's portrayal is considered a key element in the series' critical
+      and commercial success.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 8: Reliable 1 - right 90% of the time
+Holds for this question: documents supporting the gold answer (answer: l brands)
+  document [1]
+    Bath & Body Works, a renowned American retailer, operates under the corporate umbrella of L
+    Brands, previously known as Limited Brands. This company, which was established in 1990 in New
+    Albany, Ohio, has grown significantly and now boasts a presence in the United States, Canada,
+    Chile, and Peru. Alongside Victoria's Secret, Bath & Body Works falls under the L Brands
+    portfolio, offering a wide array of products including shower gels, lotions, fragrance mists,
+    perfumes, candles, and home fragrances.
+  document [2]
+    L Brands, formerly Limited Brands, is the parent company of Bath & Body Works, an American
+    retailer founded in 1990 in New Albany, Ohio. This company has expanded its reach across the
+    United States, Canada, Chile, and Peru, making it the largest bath shop chain in the United
+    States by 1997. Bath & Body Works, alongside Victoria's Secret, is a key brand under the L
+    Brands umbrella, specializing in an extensive range of products such as shower gels, lotions,
+    fragrance mists, perfumes, candles, and home fragrances.
+  document [3]
+    Bath & Body Works, an American retailer under the L Brands (formerly Limited Brands) umbrella,
+    was founded in 1990 in New Albany, Ohio. This company has expanded across the United States,
+    Canada, Chile, and Peru, becoming the largest bath shop chain in the United States by 1997.
+    Alongside Victoria's Secret, Bath & Body Works is a key brand within L Brands, known for its
+    extensive range of products including shower gels, lotions, fragrance mists, perfumes, candles,
+    and home fragrances.
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 1.001, gold (answer: L Brands)
+      Bath & Body Works, an American retailer under the L Brands (formerly Limited Brands) umbrella,
+      was founded in 1990 in New Albany, Ohio. This company has expanded across the United States,
+      Canada, Chile, and Peru, becoming the largest bath shop chain in the United States by 1997.
+      Alongside Victoria's Secret, Bath & Body Works is a key brand within L Brands, known for its
+      extensive range of products including shower gels, lotions, fragrance mists, perfumes,
+      candles, and home fragrances.
+  [2] score 0.970, gold (answer: L Brands)
+      L Brands, formerly Limited Brands, is the parent company of Bath & Body Works, an American
+      retailer founded in 1990 in New Albany, Ohio. This company has expanded its reach across the
+      United States, Canada, Chile, and Peru, making it the largest bath shop chain in the United
+      States by 1997. Bath & Body Works, alongside Victoria's Secret, is a key brand under the L
+      Brands umbrella, specializing in an extensive range of products such as shower gels, lotions,
+      fragrance mists, perfumes, candles, and home fragrances.
+  [3] score 0.944, gold (answer: L Brands)
+      Bath & Body Works, a renowned American retailer, operates under the corporate umbrella of L
+      Brands, previously known as Limited Brands. This company, which was established in 1990 in New
+      Albany, Ohio, has grown significantly and now boasts a presence in the United States, Canada,
+      Chile, and Peru. Alongside Victoria's Secret, Bath & Body Works falls under the L Brands
+      portfolio, offering a wide array of products including shower gels, lotions, fragrance mists,
+      perfumes, candles, and home fragrances.
+
+LLM answer: 'l brands'
+AlignScore support g = 0.962 -> kept
+Counts as: right
+
+====================================================================================================
+Source 9: Reliable 2 - right 90% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.686, gold (answer: Phil Heath), from question 123
+      Phil Heath emerged victorious in the 2017 Mr. Olympia bodybuilding contest, marking his
+      seventh consecutive win. This achievement tied him with Arnold Schwarzenegger for the second-
+      most Olympia victories, following Lee Haney and Ronnie Coleman who each won eight times. In
+      2017, Mamdouh Elssbiay, known as Big Ramy, secured the second place.
+  [2] score 0.663, gold (answer: Alpine), from question 728
+      In the 1955 film 'To Catch a Thief' by Alfred Hitchcock, a sapphire blue Sunbeam Alpine, an
+      open 2-seater lacking external door handles, played a significant role. Developed from a
+      saloon platform with rigidity compromises and extra side members, it featured altered gearbox
+      ratios and from 1954, standard overdrive units.
+  [3] score 0.660, gold (answer: Phil Heath), from question 123
+      Phil Heath's seventh consecutive win at the 2017 Mr. Olympia contest tied him with Arnold
+      Schwarzenegger for the second-most victories. Mamdouh Elssbiay, also known as Big Ramy, took
+      second place in the competition.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+

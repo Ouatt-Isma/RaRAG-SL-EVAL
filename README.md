@@ -11,6 +11,7 @@ the first evaluation series, saves every result, and turns them into what a pape
 | LaTeX tables (booktabs, `\input` them) | `paper/tables/*.tex` |
 | Figures (vector PDF) | `paper/figures/*.pdf` |
 | The results document, rebuilt from the above | `report/results.pdf` |
+| Example source documents and answers (plain text) | `examples/` (start with `examples/INDEX.txt`) |
 
 No interface: one command runs the grid, another rebuilds the outputs.
 
@@ -70,6 +71,12 @@ make report CONFIG=configs/pilot.yaml
 ```
 
 `make test` checks the reporting path on synthetic results.
+
+**Example documents.** `make examples` (same `CONFIG`, `RUNS_DIR`, `EMB` as above) writes, for 3 test questions of
+every setup (an attacked one first where there are attackers), `examples/<dataset>/seed<N>/<setup>/question_<idx>.txt`:
+what each source holds for the question, the passages it retrieved, the LLM's answer and whether AlignScore kept it;
+and `examples/<dataset>/documents_<idx>.txt`: every document generated for that question (gold paraphrases, each
+wrong answer's documents, the attackers' documents). It reads cached answers only. `--questions N` changes the count.
 
 ## Adding a dataset
 

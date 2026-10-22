@@ -7,7 +7,7 @@ HOST ?=
 PORT ?= 22
 REMOTE ?= /workspace
 
-.PHONY: setup run run-offline dry report report-nopdf test push pull clean
+.PHONY: setup run run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -27,6 +27,9 @@ report:                ## tables, figures and report/results.pdf from results/
 report-nopdf:
 	$(PY) -m rarag_eval.report $(CONFIG) --no-pdf
 
+examples:              ## example source documents and answers as .txt in examples/ (cached answers only)
+	$(RUN_PY) -m rarag_eval.examples $(CONFIG) $(if $(RUNS_DIR),--runs-dir $(RUNS_DIR)) $(if $(EMB),--embeddings $(EMB))
+
 test:
 	$(PY) -m pytest tests -q
 
@@ -37,6 +40,7 @@ push:                  ## this repo's code to the server (HOST=… PORT=…); th
 pull:                  ## the server's results and run log back here
 	rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/results/ results/
 	rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/logs/ logs/
+	-rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/examples/ examples/
 
 clean:
 	rm -rf report/build
