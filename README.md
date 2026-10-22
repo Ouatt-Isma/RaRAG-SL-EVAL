@@ -1,4 +1,4 @@
-# rarag-sl-eval
+# RaRAG-SL-EVAL
 
 Headless evaluation of trust for multi-source RAG: RA-RAG's reliability estimate against subjective-logic (SL)
 trust, under attack and with domain experts, **across datasets and seeds**. It confirms (or not) the results of
@@ -53,18 +53,19 @@ skipped), `make dry` lists what is left, and `make report` can be run at any tim
 Linux, or Windows with WSL 2, an NVIDIA driver installed (`nvidia-smi` works). Nothing is copied anywhere: run and
 report on the same machine.
 
+Both repositories are private: log in to GitHub on the machine first (`gh auth login`, or a personal access token
+when git asks for a password).
+
 ```bash
-# 1. both repositories side by side, the thesis one on its branch
+# 1. this repo, then the thesis repo beside it (same parent folder: this repo finds it there)
+git clone https://github.com/Ouatt-Isma/RaRAG-SL-EVAL.git
 git clone -b feature/sl-minimal-model https://github.com/ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
-cp -r <wherever it is>/rarag-sl-eval .        # this repo, beside it (or git clone, once it has a remote)
-# the experts setup also needs the datasets' domain labels, which the thesis repo's .gitignore leaves out:
-# copy Ra-Rag-Thesis-Adaptation/dataset/*.domains.json from a machine that has them
 
 # 2. the thesis environment and the LLM (Ollama's installer may ask for your sudo password)
 cd Ra-Rag-Thesis-Adaptation
 bash scripts/setup_server.sh        # Python 3.11 .venv with the tested packages, AlignScore's checkpoint (1.9 GB)
 bash scripts/setup_ollama.sh        # Ollama and Llama 3 8B fp16 (16 GB download), then one test answer
-cd ../rarag-sl-eval
+cd ../RaRAG-SL-EVAL
 
 # 3. run (inside tmux or screen, so closing the terminal does not stop it)
 make setup                          # once: the reporting environment
