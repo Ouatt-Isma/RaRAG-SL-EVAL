@@ -14,10 +14,10 @@ setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
 
 run:                   ## the grid, with the LLM, on every GPU of the server (GPUS=n: the first n; PER_GPU=n workers each)
-	$(RUN_PY) -m rarag_eval.launch $(CONFIG) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
+	$(RUN_PY) -m rarag_eval.launch $(CONFIG) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU)) $(if $(ONLY),--only $(ONLY))
 
-start:                 ## make run inside tmux: it keeps going when the terminal closes or the connection drops
-	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --tmux --session $(SESSION) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
+start:                 ## make run inside tmux: it keeps going when the terminal closes or the connection drops (ONLY="dataset=… seed=… setup=…": part of the grid)
+	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --tmux --session $(SESSION) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU)) $(if $(ONLY),--only $(ONLY))
 
 attach:                ## watch the run make start started (Ctrl-b then d: leave it running)
 	tmux attach -t $(SESSION)
@@ -38,7 +38,7 @@ run-offline:           ## the grid from cached answers only (laptop): RUNS_DIR=<
 	$(RUN_PY) -m rarag_eval.run $(CONFIG) --offline $(if $(RUNS_DIR),--runs-dir $(RUNS_DIR)) $(if $(EMB),--embeddings $(EMB))
 
 dry:                   ## what the grid still has to run
-	$(RUN_PY) -m rarag_eval.run $(CONFIG) --dry-run
+	$(RUN_PY) -m rarag_eval.run $(CONFIG) --dry-run $(if $(ONLY),--only $(ONLY))
 
 report:                ## tables, figures and report/results.pdf from results/
 	$(PY) -m rarag_eval.report $(CONFIG)

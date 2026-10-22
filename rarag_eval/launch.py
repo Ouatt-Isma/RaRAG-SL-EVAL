@@ -170,7 +170,9 @@ def in_tmux(argv, session):
     keep = [f"{k}={os.environ[k]}" for k in ("OLLAMA_MODEL", "OLLAMA_NUM_PARALLEL", "THESIS_REPO", "CUDA_VISIBLE_DEVICES")
             if k in os.environ]
     cmd = shlex.join(["env", *keep, sys.executable, "-m", "rarag_eval.launch", *argv])
-    cmd += "; echo; echo 'The run has ended (log: logs/run.log). Press Enter to close this window.'; read _"
+    # then a shell in the same window: the run's last lines stay above it, and stray input cannot close it
+    cmd += ("; echo; echo 'The run has ended (log: logs/run.log). This window is now a shell here: exit closes it.'"
+            "; exec \"${SHELL:-/bin/bash}\"")
     subprocess.run(["tmux", "new-session", "-d", "-s", session, "-c", ROOT, cmd], check=True)
     print(f"started in tmux session {session}.\n  make attach   watch it (then Ctrl-b, d: leave it running)\n"
           f"  make status   how far it is and the time left, from any terminal")
@@ -184,7 +186,8 @@ def status():
         return
     alive_now = alive(p.pid)
     print(f"{os.path.relpath(p.config, ROOT)}, {p.workers} worker{'s' if p.workers > 1 else ''}, started "
-          f"{time.strftime('%a %d %b %H:%M', time.localtime(p.t0))}{'' if alive_now else ' (not running now)'}")
+          f"{time.strftime('%a %d %b %H:%M', time.localtime(p.t0))}"
+          + ("" if alive_now else f", ended {time.strftime('%H:%M', time.localtime(p.t_end))}" if p.t_end else " (not running now)"))
     print(p.line())
 
 
@@ -228,7 +231,10 @@ def main():
         return
 
     run = [sys.executable, "-m", "rarag_eval.run", args.config, *rest]
-    progress = Progress(args.config, only_filters(rest), len(workers))
+    progress = Progress(args.config, only_filters(rest), len(workers), len({g["index"] for g, _ in workers if g}) or 1)
+    if not progress.start:
+        log(f"nothing to run: every analysis of {args.config}{' (--only ' + ' '.join(f'{k}={v}' for k, v in progress.only.items()) + ')' if progress.only else ''} is saved", logfile)
+        return
     progress.save()
     log(progress.line(), logfile)
     share.clear_claims()
@@ -267,6 +273,7 @@ def main():
     finally:
         stop(procs)
         stop(servers)
+        progress.finish()
     log(progress.line(), logfile)
     log("DONE", logfile)
 

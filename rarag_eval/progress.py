@@ -49,16 +49,21 @@ def duration(seconds):
 
 
 class Progress:
-    def __init__(self, config, only, workers):
-        self.config, self.cfg, self.only, self.workers = config, load_config(config), only, workers
-        self.t0, self.pid = time.time(), os.getpid()
+    def __init__(self, config, only, workers, gpus=1):
+        self.config, self.cfg, self.only, self.workers, self.gpus = config, load_config(config), only, workers, gpus
+        self.t0, self.t_end, self.pid = time.time(), None, os.getpid()
         self.start = remaining(self.cfg, only)
 
     def save(self):
         os.makedirs(os.path.dirname(STATE), exist_ok=True)
         with open(STATE, "w") as f:
             json.dump({"config": os.path.abspath(self.config), "t0": self.t0, "pid": self.pid, "workers": self.workers,
-                       "only": self.only, "start": self.start}, f)
+                       "gpus": self.gpus, "only": self.only, "start": self.start, "t_end": self.t_end}, f)
+
+    def finish(self):
+        """The run ended: its duration stops growing."""
+        self.t_end = time.time()
+        self.save()
 
     @classmethod
     def load(cls):
@@ -67,7 +72,7 @@ class Progress:
             s = json.load(f)
         p = cls.__new__(cls)
         p.config, p.only, p.workers, p.t0, p.pid, p.start = s["config"], s["only"], s["workers"], s["t0"], s["pid"], s["start"]
-        p.cfg = load_config(p.config)
+        p.cfg, p.gpus, p.t_end = load_config(p.config), s.get("gpus", 1), s.get("t_end")
         return p
 
     def done(self):
@@ -76,15 +81,19 @@ class Progress:
 
     def line(self):
         done, left = self.done()
-        elapsed = time.time() - self.t0
+        elapsed = (self.t_end or time.time()) - self.t0
         done_w = sum(self.start[k] for k in done)
         left_w = sum(left.values())
         if not left:
             return f"progress: all {len(self.start)} setups done in {duration(elapsed)}"
+        if self.t_end:
+            return (f"progress: {len(done)} of {len(self.start)} setups done in {duration(elapsed)}, then the run stopped; "
+                    f"{len(left)} left (make start resumes)")
         if done_w:
             eta, how = left_w * elapsed / done_w, "at this run's pace"
         else:
-            eta, how = left_w * SECONDS_PER_SOURCE / self.workers, "first guess, from about 3 GPU hours per dataset and seed"
+            # per GPU, not per worker: two workers sharing a GPU are not twice as fast
+            eta, how = left_w * SECONDS_PER_SOURCE / self.gpus, "first guess, from about 3 GPU hours per dataset and seed"
         end = time.strftime("%a %d %b %H:%M", time.localtime(time.time() + eta))
         return (f"progress: {len(done)} of {len(self.start)} setups done in {duration(elapsed)}; "
                 f"about {duration(eta)} left ({how}), finishing around {end}")

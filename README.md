@@ -74,8 +74,9 @@ cd ../RaRAG-SL-EVAL
 sudo apt install -y tmux               # if it is not there yet
 make setup                             # once: the reporting environment
 make gpus                              # check: the GPUs found and the workers it will start
-make start CONFIG=configs/pilot.yaml   # a short check first (NQ, seed 0, 6 setups)
-make start                             # then the confirmation grid (configs/confirm.yaml)
+make start ONLY="dataset=TQA_paper seed=0 setup=attackers_k2"   # a first check: one setup, about 20 min
+make status                            # when it says all done: the LLM, AlignScore and the analyses work here
+make start                             # then the rest of the confirmation grid (configs/confirm.yaml)
 
 # while it runs
 make attach                            # watch it; Ctrl-b then d leaves it running
@@ -95,6 +96,11 @@ git pull && make report                # tables, figures and report/results.pdf 
 not what `make report` generates (`paper/`, `report/`, `results/rows.csv`, `results/claims.csv`): those are rebuilt
 from the results on the machine that pulls them, so the two machines never edit the same files. `make run` does the
 same as `make start` in the terminal itself (it stops when the terminal closes).
+
+The first check is one setup of the grid itself, so its result counts: the full `make start` skips it. (`configs/pilot.yaml`
+is NQ seed 0's six setups, whose results are already in `results/`: it is for checking the reporting from cached
+answers, and `make start` on it says there is nothing to run.) When a run ends, its tmux window becomes a shell in this
+folder, with the run's last lines above it; `exit` closes it.
 
 **GPU memory.** The 16-bit model with the lab's models needs about 18.5 GB, so a 24 GB GPU (RTX 3090/4090, A5000,
 …). Most laptop GPUs have 8–16 GB: there Ollama keeps part of the model on the CPU and runs several times slower.
