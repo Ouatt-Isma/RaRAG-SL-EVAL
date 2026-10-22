@@ -8,7 +8,7 @@ PORT ?= 22
 REMOTE ?= /workspace
 SESSION ?= eval
 
-.PHONY: setup run start attach save gpus status run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -30,6 +30,15 @@ save:                  ## commit the results so far and push them (any time, als
 
 status:                ## how far make run is and how long it has left (from any terminal)
 	@$(RUN_PY) -m rarag_eval.launch $(CONFIG) --status
+
+claims:                ## optional: build the fact-checking datasets RAWFC and LIAR-RAW (local LLM, about 3-4 h each), in tmux
+	$(RUN_PY) -m rarag_eval.factcheck $(CONFIG) --tmux
+
+claims-check:          ## optional, first: build 3 RAWFC claims and print them (a few minutes; nothing kept)
+	$(RUN_PY) -m rarag_eval.factcheck $(CONFIG) --check 3
+
+claims-status:         ## how far make claims is
+	@grep -E "built,|FAILED|done:|already built" logs/claims.log 2>/dev/null | tail -n 2 || echo "no claims build started here yet"
 
 gpus:                  ## the GPUs found and the workers make run would start
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --plan $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))

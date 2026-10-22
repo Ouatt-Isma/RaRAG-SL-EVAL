@@ -18,12 +18,25 @@ from . import analyses, setups, share, store
 from .thesis import ROOT, Thesis
 
 
+def available(dataset):
+    """An optional dataset runs once it is built (its file in the thesis repo's dataset/) and is reported once it
+    has results (a machine that only reports has no thesis datasets)."""
+    from .thesis import thesis_dir
+    try:
+        built = os.path.exists(os.path.join(thesis_dir(), "dataset", os.path.basename(dataset)))
+    except SystemExit:   # no thesis repo here
+        built = False
+    return built or os.path.isdir(os.path.join(store.RESULTS, store.dataset_name(dataset)))
+
+
 def load_config(path):
     with open(path) as f:
         cfg = yaml.safe_load(f)
     defaults = {"kappa": 4, "top_k": 3, "filtering_threshold": 0.1, "coverage": 0.6, "target_fraction": 0.5,
                 "n_est": 200, "n_test": 600}
     cfg = {**defaults, **cfg}
+    cfg["datasets"] = list(cfg["datasets"]) + [d for d in cfg.get("optional_datasets") or []
+                                               if d not in cfg["datasets"] and available(d)]
     ids = [s["id"] for s in cfg["setups"]]
     if len(set(ids)) != len(ids):
         raise SystemExit("setup ids must be unique")

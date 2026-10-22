@@ -90,13 +90,13 @@ def unload(host, logfile):
         pass
 
 
-def start_ollama(gpu, port, logfile):
+def start_ollama(gpu, port, logfile, context=2048):
     host = f"127.0.0.1:{port}"
     if up(host):
         log(f"Ollama at {host}: already running, reused", logfile)
         return host, None
     env = {**os.environ, "OLLAMA_HOST": host, "OLLAMA_NUM_PARALLEL": os.environ.get("OLLAMA_NUM_PARALLEL", "4"),
-           "OLLAMA_CONTEXT_LENGTH": "2048", "OLLAMA_KEEP_ALIVE": "-1"}
+           "OLLAMA_CONTEXT_LENGTH": str(context), "OLLAMA_KEEP_ALIVE": "-1"}
     if gpu is not None:
         env["CUDA_VISIBLE_DEVICES"] = str(gpu["index"])
     out = open(os.path.join(ROOT, "logs", f"ollama.{port}.log"), "a")
@@ -157,25 +157,29 @@ def running():
         return False
 
 
-def in_tmux(argv, session):
-    """Start this launch (argv: its options, less --tmux) inside a detached tmux session: it keeps going when the
-    terminal closes or the connection drops. The window stays open at the end, to read how it ended."""
+def in_tmux(argv, session, module="rarag_eval.launch", busy=None, what="a run", log="logs/run.log"):
+    """Start `python -m module argv` (argv: its options, less --tmux) inside a detached tmux session: it keeps going
+    when the terminal closes or the connection drops. The window stays open at the end, to read how it ended."""
+    busy = busy or running
     if not shutil.which("tmux"):
         raise SystemExit("tmux is not installed (Ubuntu, WSL: sudo apt install tmux; Mac: brew install tmux)")
     if subprocess.run(["tmux", "has-session", "-t", session], capture_output=True).returncode == 0:
-        if running():
-            raise SystemExit(f"a run is going in tmux session {session}: make attach to watch it, make status for the time left")
-        subprocess.run(["tmux", "kill-session", "-t", session], check=True)   # the window of a run that ended
+        if busy():
+            raise SystemExit(f"{what} is going in tmux session {session}: make attach SESSION={session} to watch it")
+        subprocess.run(["tmux", "kill-session", "-t", session], check=True)   # the window of one that ended
     # a tmux server already running would give the session its own environment, not this shell's
     keep = [f"{k}={os.environ[k]}" for k in ("OLLAMA_MODEL", "OLLAMA_NUM_PARALLEL", "THESIS_REPO", "CUDA_VISIBLE_DEVICES")
             if k in os.environ]
-    cmd = shlex.join(["env", *keep, sys.executable, "-m", "rarag_eval.launch", *argv])
-    # then a shell in the same window: the run's last lines stay above it, and stray input cannot close it
-    cmd += ("; echo; echo 'The run has ended (log: logs/run.log). This window is now a shell here: exit closes it.'"
+    cmd = shlex.join(["env", *keep, sys.executable, "-m", module, *argv])
+    # then a shell in the same window: the last lines stay above it, and stray input cannot close it
+    cmd += (f"; echo; echo 'It has ended (log: {log}). This window is now a shell here: exit closes it.'"
             "; exec \"${SHELL:-/bin/bash}\"")
     subprocess.run(["tmux", "new-session", "-d", "-s", session, "-c", ROOT, cmd], check=True)
-    print(f"started in tmux session {session}.\n  make attach   watch it (then Ctrl-b, d: leave it running)\n"
-          f"  make status   how far it is and the time left, from any terminal")
+    attach = "make attach" + ("" if session == "eval" else f" SESSION={session}")
+    status = ("make status          how far it is and the time left" if module == "rarag_eval.launch"
+              else "make claims-status   how far it is")
+    print(f"started in tmux session {session}.\n  {attach}   watch it (then Ctrl-b, d: leave it running)\n"
+          f"  {status}, from any terminal")
 
 
 def status():

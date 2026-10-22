@@ -14,8 +14,9 @@ datasets:
   - NQ_paper.json
   - TQA_paper.json
   - HotpotQA_paper.json
-  # - LIAR_RAW.json    # fact-checking claims: needs the claims build first (see README)
-  # - RAWFC.json
+optional_datasets:     # fact-checking claims: in the grid once built (make claims, see README), else left out
+  - RAWFC.json
+  - LIAR_RAW.json
 setups:
   - {id: unreliable_k3, kind: unreliable, k: 3}     # the paper's Table A4 mix (3 unreliable + 6 reliable)
   - {id: unreliable_k7, kind: unreliable, k: 7}

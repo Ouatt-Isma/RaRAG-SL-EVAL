@@ -49,3 +49,28 @@ def test_progress_helpers():
         {"dataset": "NQ_paper", "seed": "0"}
     assert progress.duration(59) == "0 min" and progress.duration(3 * 3600 + 5 * 60) == "3 h 05 min"
     assert progress.sources({"kind": "mix5"}) == 5 and progress.sources({"kind": "attackers"}) == 9
+
+
+def test_optional_datasets_join_once_available(tmp_path, monkeypatch):
+    from rarag_eval import run
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text("model: m\ndatasets: [NQ_paper.json]\noptional_datasets: [RAWFC.json, LIAR_RAW.json]\nseeds: [0]\n"
+                   "setups: [{id: a, kind: attackers, k: 1}]\n")
+    monkeypatch.setattr(run, "available", lambda d: d == "RAWFC.json")
+    assert run.load_config(str(cfg))["datasets"] == ["NQ_paper.json", "RAWFC.json"]
+
+
+def test_tmux_command_for_the_claims_build(monkeypatch):
+    import subprocess
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 1 if cmd[1] == "has-session" else 0)
+    monkeypatch.setattr(launch.shutil, "which", lambda name: "/usr/bin/" + name)
+    monkeypatch.setattr(launch.subprocess, "run", fake_run)
+    launch.in_tmux(["configs/confirm.yaml"], "claims", module="rarag_eval.factcheck", busy=lambda: False,
+                   what="a claims build", log="logs/claims.log")
+    new = calls[-1]
+    assert new[:5] == ["tmux", "new-session", "-d", "-s", "claims"]
+    assert "-m rarag_eval.factcheck configs/confirm.yaml;" in new[-1] and "logs/claims.log" in new[-1]
