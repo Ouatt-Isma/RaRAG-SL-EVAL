@@ -1,6 +1,7 @@
 # The confirmation grid: the first evaluation series' setups on every dataset and seed.
 # Each setup is one lab scenario (one round of LLM answers) per dataset and seed; its analyses reuse those answers.
 model: ollama_llama3_8b
+ollama_model: llama3:8b-instruct-fp16   # the tag the earlier server runs used (16-bit, as the paper; FINDINGS F-27)
 n_est: 200            # warm-up questions
 n_test: 600           # test questions
 kappa: 4              # sources RA-RAG's answering asks (the paper's)

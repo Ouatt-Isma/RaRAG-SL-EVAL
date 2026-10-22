@@ -7,13 +7,16 @@ HOST ?=
 PORT ?= 22
 REMOTE ?= /workspace
 
-.PHONY: setup run run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run gpus run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
 
-run:                   ## the grid, with the LLM (on the GPU server)
-	$(RUN_PY) -m rarag_eval.run $(CONFIG)
+run:                   ## the grid, with the LLM, on every GPU of the server (GPUS=n: the first n; PER_GPU=n workers each)
+	$(RUN_PY) -m rarag_eval.launch $(CONFIG) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
+
+gpus:                  ## the GPUs found and the workers make run would start
+	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --plan $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
 
 run-offline:           ## the grid from cached answers only (laptop): RUNS_DIR=<a server backup's vector_cache>
 	$(RUN_PY) -m rarag_eval.run $(CONFIG) --offline $(if $(RUNS_DIR),--runs-dir $(RUNS_DIR)) $(if $(EMB),--embeddings $(EMB))

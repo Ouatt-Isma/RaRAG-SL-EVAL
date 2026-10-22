@@ -61,6 +61,19 @@ make pull HOST=<host> PORT=<port> && make report
 left. One dataset and seed of the full grid is about 3 GPU hours (about 50,000 LLM answers); the analyses on cached
 answers take minutes.
 
+**Several GPUs.** `make run` finds the GPUs (`nvidia-smi`) and starts workers for them: one per 21 GB of a GPU's memory
+(one on a 24 GB RTX 4090, two on a 48 GB A6000, three on an 80 GB A100/H100), each with its own Ollama server pinned to
+its GPU (ports 11500, 11501, …), the LLM, AlignScore, the entailment model and the retriever all on that GPU. The
+workers take the grid's setups one at a time from a shared queue (`results/.claims/`), so they finish together: the
+`confirm.yaml` grid (about 27 GPU hours) takes about 14 h on 2 GPUs and 7 h on 4. A model the default Ollama (port
+11434) holds on a GPU is unloaded first (the server keeps running); the workers' Ollama servers stop when the run ends.
+`make gpus` shows the plan without starting anything; `GPUS=2` uses the first two, `PER_GPU=1` one worker per GPU.
+Logs: `logs/run.log` (the launch), `logs/run.w<N>.log` (each worker), `logs/ollama.<port>.log`. With one GPU it is
+the plain single run on the Ollama already running.
+
+The LLM is `ollama_model` in the config (`llama3:8b-instruct-fp16`, the tag the earlier server runs used, so cached
+answers stay comparable); `OLLAMA_MODEL=…` overrides it, and every result records the tag it ran with.
+
 **On the laptop, from cached answers** (no LLM: setups whose answers a server already produced, e.g. a server backup):
 
 ```bash

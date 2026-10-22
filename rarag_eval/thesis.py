@@ -6,6 +6,8 @@ import pickle
 import subprocess
 import sys
 
+from . import share
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -53,6 +55,31 @@ class Thesis:
             lab.RES.embeddings = lab.PersistentEmbeddings(ContrieverEncoder, path=embeddings)
         self.nli_path = nli_memo
         self._nli = None
+        self._share_caches()
+
+    def _share_caches(self):
+        """Several workers (one per GPU) write the same caches: the question embeddings and the LLM's responses.
+        An embedding save first merges what another worker saved; the response database waits for a lock
+        instead of failing after 5 s."""
+        from src import llm_api  # noqa: E402
+        emb_cls, init = self.lab.PersistentEmbeddings, llm_api.ResponseCache.__init__
+        save = emb_cls.save
+
+        def merged_save(emb):
+            with share.locked(emb.path):
+                if os.path.exists(emb.path):
+                    try:
+                        with open(emb.path, "rb") as f:
+                            for k, v in pickle.load(f).items():
+                                emb._cache.setdefault(k, v)
+                    except Exception:
+                        pass
+                save(emb)
+
+        def patient(cache, *args, **kwargs):
+            init(cache, *args, **kwargs)
+            cache._conn.execute("PRAGMA busy_timeout = 120000")
+        emb_cls.save, llm_api.ResponseCache.__init__ = merged_save, patient
 
     def _keep_big_results_off_disk(self):
         """The lab saves every analysis whole (about 46 MB each); here only the compact summaries are kept."""
@@ -85,7 +112,15 @@ class Thesis:
         if self._nli is None or not self.nli_path:
             return
         os.makedirs(os.path.dirname(os.path.abspath(self.nli_path)), exist_ok=True)
-        tmp = self.nli_path + ".tmp"
-        with open(tmp, "wb") as f:
-            pickle.dump(self._nli._memo, f)
-        os.replace(tmp, self.nli_path)
+        with share.locked(self.nli_path):   # merge another worker's decisions first
+            if os.path.exists(self.nli_path):
+                try:
+                    with open(self.nli_path, "rb") as f:
+                        for k, v in pickle.load(f).items():
+                            self._nli._memo.setdefault(k, v)
+                except Exception:
+                    pass
+            tmp = self.nli_path + ".tmp"
+            with open(tmp, "wb") as f:
+                pickle.dump(self._nli._memo, f)
+            os.replace(tmp, self.nli_path)

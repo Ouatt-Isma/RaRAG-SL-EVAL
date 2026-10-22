@@ -1,0 +1,190 @@
+"""Run the grid on every GPU of the machine. Each worker is one `rarag_eval.run` with its own Ollama server, both
+pinned to one GPU (the LLM, AlignScore, the entailment model and the retriever all run there); the workers take
+the grid's setups one at a time from a shared queue, so they finish together. Workers per GPU: one per 21 GB
+of its memory (about 18.5 GB measured for Llama 3 8B fp16 and the lab's models), so one on a 24 GB card, two on
+a 48 GB card, three on an 80 GB card. With a single worker it is the plain run, on the Ollama already running.
+
+  python -m rarag_eval.launch configs/confirm.yaml                 # every GPU
+  python -m rarag_eval.launch configs/confirm.yaml --gpus 2        # the first 2 GPUs
+  python -m rarag_eval.launch configs/confirm.yaml --plan          # what it would start, nothing more
+  (any other option goes to rarag_eval.run, e.g. --only dataset=NQ_paper)
+"""
+import argparse
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+import urllib.request
+
+from . import share
+from .run import load_config, log
+from .thesis import ROOT
+
+SLOT_MIB = 21 * 1024
+FIRST_PORT = 11500
+DEFAULT_OLLAMA = "127.0.0.1:11434"
+
+
+def parse_smi(text, visible=None):
+    """nvidia-smi's "index, name, memory.total" CSV lines as [{index, name, mib}], only the GPUs that
+    CUDA_VISIBLE_DEVICES leaves visible when it lists indices."""
+    gpus = []
+    for line in text.strip().splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) == 3 and parts[0].isdigit():
+            gpus.append({"index": int(parts[0]), "name": parts[1], "mib": int(float(parts[2]))})
+    keep = [v.strip() for v in (visible or "").split(",") if v.strip()]
+    if keep and all(v.isdigit() for v in keep):
+        gpus = [g for g in gpus if str(g["index"]) in keep]
+    return gpus
+
+
+def detect():
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=index,name,memory.total", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=30, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return parse_smi(out, os.environ.get("CUDA_VISIBLE_DEVICES"))
+
+
+def plan(gpus, n_gpus=None, per_gpu=None, workers=None):
+    """[(gpu or None, port)] for each worker."""
+    gpus = gpus[:n_gpus] if n_gpus else gpus
+    if workers:   # an explicit count, spread over the GPUs (or none, e.g. offline on a laptop)
+        return [(gpus[w % len(gpus)] if gpus else None, FIRST_PORT + w) for w in range(workers)]
+    slots = [(g, per_gpu or max(1, g["mib"] // SLOT_MIB)) for g in gpus]
+    return [(g, FIRST_PORT + w) for w, g in enumerate(g for g, n in slots for _ in range(n))] or [(None, None)]
+
+
+def http(url, body=None, timeout=5):
+    req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read() or b"{}")
+
+
+def up(host):
+    try:
+        http(f"http://{host}/api/tags")
+        return True
+    except Exception:
+        return False
+
+
+def unload(host, logfile):
+    """Models the default Ollama keeps on a GPU (it loads them for good) would leave a worker's GPU short."""
+    try:
+        for m in http(f"http://{host}/api/ps").get("models", []):
+            http(f"http://{host}/api/generate", {"model": m["name"], "keep_alive": 0}, timeout=60)
+            log(f"unloaded {m['name']} from the Ollama at {host} (it frees its GPU memory; the server keeps running)", logfile)
+    except Exception:
+        pass
+
+
+def start_ollama(gpu, port, logfile):
+    host = f"127.0.0.1:{port}"
+    if up(host):
+        log(f"Ollama at {host}: already running, reused", logfile)
+        return host, None
+    env = {**os.environ, "OLLAMA_HOST": host, "OLLAMA_NUM_PARALLEL": os.environ.get("OLLAMA_NUM_PARALLEL", "4"),
+           "OLLAMA_CONTEXT_LENGTH": "2048", "OLLAMA_KEEP_ALIVE": "-1"}
+    if gpu is not None:
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu["index"])
+    out = open(os.path.join(ROOT, "logs", f"ollama.{port}.log"), "a")
+    proc = subprocess.Popen(["ollama", "serve"], env=env, stdout=out, stderr=subprocess.STDOUT,
+                            stdin=subprocess.DEVNULL, start_new_session=True)
+    for _ in range(60):
+        if up(host):
+            break
+        time.sleep(1)
+    else:
+        raise SystemExit(f"Ollama at {host} did not start; see logs/ollama.{port}.log")
+    log(f"Ollama at {host} on GPU {gpu['index'] if gpu else '-'} started", logfile)
+    return host, proc
+
+
+def stop(procs):
+    for p in procs:
+        if p and p.poll() is None:
+            try:
+                os.killpg(p.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+    for p in procs:
+        if p:
+            try:
+                p.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                os.killpg(p.pid, signal.SIGKILL)
+
+
+def interrupted(*_):
+    raise KeyboardInterrupt
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("config")
+    ap.add_argument("--gpus", type=int, help="use only the first N GPUs")
+    ap.add_argument("--per-gpu", type=int, help="workers per GPU (default: one per 21 GB of its memory)")
+    ap.add_argument("--workers", type=int, help="this many workers, spread over the GPUs (testing: works without one)")
+    ap.add_argument("--plan", action="store_true", help="print the GPUs and workers, start nothing")
+    args, rest = ap.parse_known_args()
+    signal.signal(signal.SIGTERM, interrupted)   # e.g. the tmux session closed: stop the workers too
+    cfg = load_config(args.config)
+    logfile = os.path.join(ROOT, "logs", "run.log")
+    os.makedirs(os.path.dirname(logfile), exist_ok=True)
+    gpus = detect()
+    workers = plan(gpus, args.gpus, args.per_gpu, args.workers)
+    offline = "--offline" in rest
+    tag = os.environ.get("OLLAMA_MODEL") or cfg.get("ollama_model") or "(the model config's)"
+
+    gpu_text = ", ".join(f"GPU {g['index']} {g['name']} {g['mib'] / 1024:.0f} GB" for g in gpus) or "no NVIDIA GPU"
+    log(f"{gpu_text}: {len(workers)} worker{'s' if len(workers) > 1 else ''}, LLM {tag}"
+        + (", offline" if offline else ""), logfile)
+    if args.plan:
+        for w, (g, port) in enumerate(workers):
+            print(f"  worker {w}: GPU {g['index'] if g else '-'}, " + ("no LLM (offline)" if offline else
+                  f"its own Ollama at 127.0.0.1:{port}" if len(workers) > 1 else "the Ollama already running"))
+        return
+
+    run = [sys.executable, "-m", "rarag_eval.run", args.config, *rest]
+    if len(workers) == 1:
+        g = workers[0][0]
+        env = {**os.environ, **({"CUDA_VISIBLE_DEVICES": str(g["index"])} if g and args.gpus else {})}
+        sys.exit(subprocess.call(run, cwd=ROOT, env=env))
+
+    share.clear_claims()
+    servers, procs = [], []
+    try:
+        if not offline:
+            unload(os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA).replace("http://", ""), logfile)
+            for g, port in workers:
+                host, proc = start_ollama(g, port, logfile)
+                servers.append(proc)
+        for w, (g, port) in enumerate(workers):
+            env = {**os.environ, "RARAG_WORKER": str(w)}
+            if g is not None:
+                env["CUDA_VISIBLE_DEVICES"] = str(g["index"])
+            if not offline:
+                env["OLLAMA_HOST"] = f"127.0.0.1:{port}"
+            wlog = os.path.join("logs", f"run.w{w}.log")
+            err = open(os.path.join(ROOT, "logs", f"run.w{w}.err"), "a")   # warnings, and a crash's traceback
+            procs.append(subprocess.Popen(run + ["--claim", "--log", wlog], cwd=ROOT, env=env, stdout=subprocess.DEVNULL,
+                                          stderr=err, start_new_session=True))
+            log(f"worker {w} on GPU {g['index'] if g else '-'}: started, log {wlog}", logfile)
+        codes = [p.wait() for p in procs]
+        log(f"workers done (exit codes {codes})", logfile)
+    except KeyboardInterrupt:
+        log("stopped: stopping the workers (saved analyses are kept; make run resumes)", logfile)
+    finally:
+        stop(procs)
+        stop(servers)
+    log("DONE", logfile)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,6 +1,7 @@
 """Run the evaluation grid of a config: every dataset x seed x setup, each through its analyses. Saved
 results are skipped, so it resumes where it stopped. LLM answers come from the local model through the
 thesis lab (Ollama on a GPU server); --offline uses cached answers only and skips what would need the LLM.
+`make run` starts it through launch.py, once per GPU (--claim: the workers share the grid).
 
   python -m rarag_eval.run configs/confirm.yaml
   python -m rarag_eval.run configs/confirm.yaml --only dataset=NQ_paper seed=0 setup=attackers_k2
@@ -13,7 +14,7 @@ import traceback
 
 import yaml
 
-from . import analyses, setups, store
+from . import analyses, setups, share, store
 from .thesis import ROOT, Thesis
 
 
@@ -56,10 +57,14 @@ def main():
     ap.add_argument("--embeddings", help="a question-embedding cache to use (e.g. a server backup's)")
     ap.add_argument("--nli", default=os.path.join(ROOT, "cache", "nli.pkl"), help="the entailment decisions kept between runs")
     ap.add_argument("--dry-run", action="store_true", help="list what would run")
+    ap.add_argument("--claim", action="store_true", help="one of several workers: take only setups no other worker took")
+    ap.add_argument("--log", default=os.path.join("logs", "run.log"))
     args = ap.parse_args()
     cfg = load_config(args.config)
     only = dict(kv.split("=", 1) for kv in args.only)
-    logfile = os.path.join(ROOT, "logs", "run.log")
+    logfile = os.path.join(ROOT, args.log)
+    if cfg.get("ollama_model"):   # the Ollama tag (the model config names a 4-bit one); OLLAMA_MODEL overrides
+        os.environ.setdefault("OLLAMA_MODEL", cfg["ollama_model"])
     os.makedirs(os.path.dirname(logfile), exist_ok=True)
 
     todo = []
@@ -76,16 +81,23 @@ def main():
         return
     th = Thesis(cfg["model"], runs_dir=args.runs_dir, offline=args.offline, embeddings=args.embeddings, nli_memo=args.nli)
     th.nli()
-    log(f"thesis {th.path} @ {th.commit}, runs in {th.runs_dir}, model {th.model}{', offline' if args.offline else ''}", logfile)
+    tag = os.environ.get("OLLAMA_MODEL")
+    log(f"thesis {th.path} @ {th.commit}, runs in {th.runs_dir}, model {th.model}{f' ({tag})' if tag else ''}"
+        f"{', offline' if args.offline else ''}, GPU {os.environ.get('CUDA_VISIBLE_DEVICES', 'default')}", logfile)
     for dataset, seed, setup, missing in todo:
         name = f"{store.dataset_name(dataset)} seed {seed} {setup['id']}"
+        if args.claim and not share.claim(dataset, seed, setup["id"]):
+            continue
         try:
             t0 = time.perf_counter()
-            sc = setups.scenario(th, dataset, seed, setup, cfg)
-            if args.offline and not os.path.exists(os.path.join(sc.run_dir, "corpora.pkl")):
-                log(f"{name}: skipped (offline, sources never built)", logfile)
-                continue
-            sc.build()
+            # building writes caches shared by every setup of a dataset (its topic model, the embeddings):
+            # one worker at a time
+            with share.locked(os.path.join(th.runs_dir, ".build")):
+                sc = setups.scenario(th, dataset, seed, setup, cfg)
+                if args.offline and not os.path.exists(os.path.join(sc.run_dir, "corpora.pkl")):
+                    log(f"{name}: skipped (offline, sources never built)", logfile)
+                    continue
+                sc.build()
             if sc.estimation is None and not sc.load_cached_estimation():
                 if args.offline:
                     log(f"{name}: skipped (offline, no cached warm-up answers)", logfile)
@@ -98,7 +110,8 @@ def main():
                 body["meta"] = {"dataset": store.dataset_name(dataset), "seed": seed, "setup": setup["id"], "setup_spec": setup,
                                 "analysis": analysis, "kind": kind, "settings": {**analyses.BASE, **settings},
                                 "kappa": cfg["kappa"], "n_est": cfg["n_est"], "n_test": cfg["n_test"], "run": sc.run_name,
-                                "model": th.model, "thesis_commit": th.commit, "seconds": round(time.perf_counter() - t1, 1)}
+                                "model": th.model, "llm_tag": tag, "thesis_commit": th.commit,
+                                "seconds": round(time.perf_counter() - t1, 1)}
                 store.save(body, dataset, seed, setup["id"], analysis)
                 if len(th.nli()._memo) > memo0:
                     th.save_nli()

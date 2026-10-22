@@ -7,3 +7,5 @@ logs/
 report/build/
 *.tmp
 .DS_Store
+*.lock
+results/.claims/
