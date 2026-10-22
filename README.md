@@ -58,6 +58,9 @@ when git asks for a password).
 
 ```bash
 # 1. this repo, then the thesis repo beside it (same parent folder: this repo finds it there)
+git clone git@github.com:Ouatt-Isma/RaRAG-SL-EVAL.git
+git clone -b feature/sl-minimal-model git@github.com:ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
+or 
 git clone https://github.com/Ouatt-Isma/RaRAG-SL-EVAL.git
 git clone -b feature/sl-minimal-model https://github.com/ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
 
