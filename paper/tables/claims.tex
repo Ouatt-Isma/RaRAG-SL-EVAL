@@ -1,30 +1,30 @@
 \begin{table*}
 \centering
 \small
-\begin{tabular}{@{}l p{6.2cm} rrr r c@{}}
+\begin{tabular}{@{}l p{6.2cm} r r c@{}}
 \toprule
-\# & Result (method vs baseline) & NQ & TriviaQA & HotpotQA & All, 95\% CI & Holds \\
+\# & Result (method vs baseline) & NQ & All, 95\% CI & Holds \\
 \midrule
-1 & RA-RAG beats equal weights (the paper's result): RA-RAG (paper) vs equal weights, accuracy & $+3.3$ & -- & -- & $+3.3$ & 1/1 \\
-2 & RA-RAG's estimate overrates some sources: RA-RAG's estimate, largest excess vs warm-up truth, estimate minus truth (score) & -- & -- & -- & -- & -- \\
-3 & Frozen trust is easy to attack (2 attackers of 9): SL with aging vs RA-RAG frozen (paper), attacks that succeed & $-40.1$ & -- & -- & $-40.1$ & 1/1 \\
-4 & Staying online recovers most of it (3 attackers): RA-RAG online vs RA-RAG frozen, accuracy & $+21.0$ & -- & -- & $+21.0$ & 1/1 \\
-5a & Forgetting is the defense: SL (late switch): SL with aging vs SL online, accuracy & -- & -- & -- & -- & -- \\
-5b & Forgetting is the defense: RA-RAG (late switch): RA-RAG with a window vs RA-RAG online, accuracy & -- & -- & -- & -- & -- \\
-6 & Same memory: SL and RA-RAG tie (1-3 attackers): SL with a window vs RA-RAG with a window, accuracy & $+0.4$ & -- & -- & $+0.4$ [$+0.1$, $+0.6$] & 3/3 \\
-7 & The switch detector adds little: SL with aging + the detector vs SL with aging, accuracy & $-0.2$ & -- & -- & $-0.2$ & 1/1 \\
-8 & SL is better with few warm-up questions (5 sources, 5 questions): SL frozen vs RA-RAG frozen, accuracy & -- & -- & -- & -- & -- \\
-9a & SL holds better near a majority of attackers (4 of 9): SL with a window vs RA-RAG with a window, accuracy & $+7.0$ & -- & -- & $+7.0$ & 1/1 \\
-9b & ... and fewer attacks succeed: SL with a window vs RA-RAG with a window, attacks that succeed & $-13.6$ & -- & -- & $-13.6$ & 1/1 \\
-10 & Learning a trust is essential (7 unreliable of 9): best learned trust vs equal weights, accuracy & $+38.8$ & -- & -- & $+38.8$ & 1/1 \\
-11 & One score per source rarely asks the experts: RA-RAG (paper) vs equal weights, accuracy & -- & -- & -- & -- & -- \\
-12a & Trust per domain, online (SL, 15 warm-up questions): SL per domain vs SL, one score, accuracy & -- & -- & -- & -- & -- \\
-12b & Trust per domain, frozen (SL, 15 warm-up questions): SL frozen per domain vs SL frozen, one score, accuracy & -- & -- & -- & -- & -- \\
-13a & Without labels, soft weights recover part of the gain: SL, soft weights vs SL, no domains, accuracy & -- & -- & -- & -- & -- \\
-13b & Soft weights beat the nearest centroid: SL, soft weights vs SL, nearest centroid, accuracy & -- & -- & -- & -- & -- \\
-14a & SL beats RA-RAG per domain (LLM labels): SL per domain vs RA-RAG per domain, online, accuracy & -- & -- & -- & -- & -- \\
-14b & SL beats RA-RAG per domain (nearest centroid): SL per domain vs RA-RAG per domain, online, accuracy & -- & -- & -- & -- & -- \\
-15 & SL's own answering protects out-of-date trust (frozen, 3 attackers): SL's own answering vs RA-RAG's answering, attacks that succeed & $-26.8$ & -- & -- & $-26.8$ & 1/1 \\
+1 & RA-RAG beats equal weights (the paper's result): RA-RAG (paper) vs equal weights, accuracy & $+3.3$ & $+3.3$ & 1/1 \\
+2 & RA-RAG's estimate overrates some sources: RA-RAG's estimate, largest excess vs warm-up truth, estimate minus truth (score) & -- & -- & -- \\
+3 & Frozen trust is easy to attack (2 attackers of 9): SL with aging vs RA-RAG frozen (paper), attacks that succeed & $-40.1$ & $-40.1$ & 1/1 \\
+4 & Staying online recovers most of it (3 attackers): RA-RAG online vs RA-RAG frozen, accuracy & $+21.0$ & $+21.0$ & 1/1 \\
+5a & Forgetting is the defense: SL (late switch): SL with aging vs SL online, accuracy & -- & -- & -- \\
+5b & Forgetting is the defense: RA-RAG (late switch): RA-RAG with a window vs RA-RAG online, accuracy & -- & -- & -- \\
+6 & Same memory: SL and RA-RAG tie (1-3 attackers): SL with a window vs RA-RAG with a window, accuracy & $+0.4$ & $+0.4$ [$+0.1$, $+0.6$] & 3/3 \\
+7 & The switch detector adds little: SL with aging + the detector vs SL with aging, accuracy & $-0.2$ & $-0.2$ & 1/1 \\
+8 & SL is better with few warm-up questions (5 sources, 5 questions): SL frozen vs RA-RAG frozen, accuracy & -- & -- & -- \\
+9a & SL holds better near a majority of attackers (4 of 9): SL with a window vs RA-RAG with a window, accuracy & $+7.0$ & $+7.0$ & 1/1 \\
+9b & ... and fewer attacks succeed: SL with a window vs RA-RAG with a window, attacks that succeed & $-13.6$ & $-13.6$ & 1/1 \\
+10 & Learning a trust is essential (7 unreliable of 9): best learned trust vs equal weights, accuracy & $+38.8$ & $+38.8$ & 1/1 \\
+11 & One score per source rarely asks the experts: RA-RAG (paper) vs equal weights, accuracy & -- & -- & -- \\
+12a & Trust per domain, online (SL, 15 warm-up questions): SL per domain vs SL, one score, accuracy & -- & -- & -- \\
+12b & Trust per domain, frozen (SL, 15 warm-up questions): SL frozen per domain vs SL frozen, one score, accuracy & -- & -- & -- \\
+13a & Without labels, soft weights recover part of the gain: SL, soft weights vs SL, no domains, accuracy & -- & -- & -- \\
+13b & Soft weights beat the nearest centroid: SL, soft weights vs SL, nearest centroid, accuracy & -- & -- & -- \\
+14a & SL beats RA-RAG per domain (LLM labels): SL per domain vs RA-RAG per domain, online, accuracy & -- & -- & -- \\
+14b & SL beats RA-RAG per domain (nearest centroid): SL per domain vs RA-RAG per domain, online, accuracy & -- & -- & -- \\
+15 & SL's own answering protects out-of-date trust (frozen, 3 attackers): SL's own answering vs RA-RAG's answering, attacks that succeed & $-26.8$ & $-26.8$ & 1/1 \\
 \bottomrule
 \end{tabular}
 \caption{The first evaluation series' results across datasets and seeds. Each cell is the method's difference from the baseline in percentage points (accuracy or attacks that succeed), averaged over seeds; ``All'' averages every dataset and seed, with a 95\% $t$ interval when there are several; ``Holds'' counts the runs where the difference goes the expected way (for a tie: within one point).}

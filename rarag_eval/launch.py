@@ -2,7 +2,8 @@
 pinned to one GPU (the LLM, AlignScore, the entailment model and the retriever all run there); the workers take
 the grid's setups one at a time from a shared queue, so they finish together. Workers per GPU: one per 21 GB
 of its memory (about 18.5 GB measured for Llama 3 8B fp16 and the lab's models), so one on a 24 GB card, two on
-a 48 GB card, three on an 80 GB card. With a single worker it is the plain run, on the Ollama already running.
+a 48 GB card, three on an 80 GB card. Even a single worker gets its own Ollama, so its settings (4 requests at
+once, 2048-token context) are the same on every machine, whatever the installed Ollama service is set to.
 
   python -m rarag_eval.launch configs/confirm.yaml                 # every GPU
   python -m rarag_eval.launch configs/confirm.yaml --gpus 2        # the first 2 GPUs
@@ -56,7 +57,7 @@ def plan(gpus, n_gpus=None, per_gpu=None, workers=None):
     if workers:   # an explicit count, spread over the GPUs (or none, e.g. offline on a laptop)
         return [(gpus[w % len(gpus)] if gpus else None, FIRST_PORT + w) for w in range(workers)]
     slots = [(g, per_gpu or max(1, g["mib"] // SLOT_MIB)) for g in gpus]
-    return [(g, FIRST_PORT + w) for w, g in enumerate(g for g, n in slots for _ in range(n))] or [(None, None)]
+    return [(g, FIRST_PORT + w) for w, g in enumerate(g for g, n in slots for _ in range(n))] or [(None, FIRST_PORT)]
 
 
 def http(url, body=None, timeout=5):
@@ -147,16 +148,11 @@ def main():
         + (", offline" if offline else ""), logfile)
     if args.plan:
         for w, (g, port) in enumerate(workers):
-            print(f"  worker {w}: GPU {g['index'] if g else '-'}, " + ("no LLM (offline)" if offline else
-                  f"its own Ollama at 127.0.0.1:{port}" if len(workers) > 1 else "the Ollama already running"))
+            print(f"  worker {w}: GPU {g['index'] if g else '-'}, "
+                  + ("no LLM (offline)" if offline else f"its own Ollama at 127.0.0.1:{port}"))
         return
 
     run = [sys.executable, "-m", "rarag_eval.run", args.config, *rest]
-    if len(workers) == 1:
-        g = workers[0][0]
-        env = {**os.environ, **({"CUDA_VISIBLE_DEVICES": str(g["index"])} if g and args.gpus else {})}
-        sys.exit(subprocess.call(run, cwd=ROOT, env=env))
-
     share.clear_claims()
     servers, procs = [], []
     try:
@@ -165,12 +161,21 @@ def main():
             for g, port in workers:
                 host, proc = start_ollama(g, port, logfile)
                 servers.append(proc)
-        for w, (g, port) in enumerate(workers):
+
+        def env_for(w, g, port):
             env = {**os.environ, "RARAG_WORKER": str(w)}
             if g is not None:
                 env["CUDA_VISIBLE_DEVICES"] = str(g["index"])
             if not offline:
                 env["OLLAMA_HOST"] = f"127.0.0.1:{port}"
+            return env
+
+        if len(workers) == 1:   # in the foreground: its progress in this terminal
+            code = subprocess.call(run, cwd=ROOT, env=env_for(0, *workers[0]))
+            log(f"run done (exit code {code})", logfile)
+            return
+        for w, (g, port) in enumerate(workers):
+            env = env_for(w, g, port)
             wlog = os.path.join("logs", f"run.w{w}.log")
             err = open(os.path.join(ROOT, "logs", f"run.w{w}.err"), "a")   # warnings, and a crash's traceback
             procs.append(subprocess.Popen(run + ["--claim", "--log", wlog], cwd=ROOT, env=env, stdout=subprocess.DEVNULL,

@@ -24,6 +24,9 @@ def write_generated(cfg, index, rows, summary):
     os.makedirs(out, exist_ok=True)
     units = sorted({(d, s) for d, s, _, _ in index})
     commits = sorted({rec["meta"].get("thesis_commit", "?") for rec in index.values()})
+    tags = sorted({rec["meta"].get("llm_tag") or "tag not recorded" for rec in index.values()})
+    if len(tags) > 1:
+        print(f"WARNING: these results come from different LLMs ({', '.join(tags)}): keep each in its own results folder")
     with open(os.path.join(out, "facts.tex"), "w") as f:
         f.write(f"\\newcommand{{\\builtat}}{{{time.strftime('%Y-%m-%d %H:%M')}}}\n")
         f.write(f"\\newcommand{{\\nanalyses}}{{{len(index)}}}\n")
@@ -31,7 +34,7 @@ def write_generated(cfg, index, rows, summary):
         f.write(f"\\newcommand{{\\datasets}}{{{', '.join(tables.dlabel(d) for d in sorted({u[0] for u in units})) or 'none yet'}}}\n")
         f.write(f"\\newcommand{{\\seeds}}{{{', '.join(str(s) for s in sorted({u[1] for u in units})) or 'none yet'}}}\n")
         f.write(f"\\newcommand{{\\thesiscommit}}{{{tables.esc(', '.join(commits)) or '--'}}}\n")
-        f.write(f"\\newcommand{{\\model}}{{{tables.esc(cfg['model'])}}}\n")
+        f.write(f"\\newcommand{{\\model}}{{{tables.esc(cfg['model'] + ' (' + ', '.join(tags) + ')' if tags else cfg['model'])}}}\n")
 
 
 def build(cfg, pdf=True):

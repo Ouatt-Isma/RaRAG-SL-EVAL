@@ -45,36 +45,62 @@ each one per dataset, over all runs (mean, 95% interval) and how many runs agree
 
 ## Running
 
-**On a GPU server** (one RTX 4090 is enough; the thesis repo and its environment set up as in its `SETUP.md`):
+Three ways, depending on the machine. In all of them `make run` resumes where it stopped (saved analyses are
+skipped), `make dry` lists what is left, and `make report` can be run at any time, also during a run.
+
+### 1. On a machine with its own GPU, used directly (a workstation or a laptop)
+
+Linux, or Windows with WSL 2, an NVIDIA driver installed (`nvidia-smi` works). Nothing is copied anywhere: run and
+report on the same machine.
+
+```bash
+# 1. both repositories side by side, the thesis one on its branch
+git clone -b feature/sl-minimal-model https://github.com/ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
+cp -r <wherever it is>/rarag-sl-eval .        # this repo, beside it (or git clone, once it has a remote)
+# the experts setup also needs the datasets' domain labels, which the thesis repo's .gitignore leaves out:
+# copy Ra-Rag-Thesis-Adaptation/dataset/*.domains.json from a machine that has them
+
+# 2. the thesis environment and the LLM (Ollama's installer may ask for your sudo password)
+cd Ra-Rag-Thesis-Adaptation
+bash scripts/setup_server.sh        # Python 3.11 .venv with the tested packages, AlignScore's checkpoint (1.9 GB)
+bash scripts/setup_ollama.sh        # Ollama and Llama 3 8B fp16 (16 GB download), then one test answer
+cd ../rarag-sl-eval
+
+# 3. run (inside tmux or screen, so closing the terminal does not stop it)
+make setup                          # once: the reporting environment
+make gpus                           # check: the GPUs found and the workers it will start
+make run CONFIG=configs/pilot.yaml  # a short check first (NQ, seed 0, 6 setups)
+make run                            # the confirmation grid (configs/confirm.yaml)
+make report                         # tables, figures and report/results.pdf from what has finished
+```
+
+**GPU memory.** The 16-bit model with the lab's models needs about 18.5 GB, so a 24 GB GPU (RTX 3090/4090, A5000,
+…). Most laptop GPUs have 8–16 GB: there Ollama keeps part of the model on the CPU and runs several times slower.
+`OLLAMA_MODEL=llama3:8b-instruct-q8_0 make run` fits in 16 GB, but it is not the model of the earlier runs: run it
+in its own copy of this repo so its results never mix with the fp16 ones (`make report` warns when they do).
+
+**Apple silicon (a Mac).** It runs, with no setup scripts: install [Ollama](https://ollama.com) and the thesis
+environment as in its README, `ollama pull llama3:8b-instruct-fp16`, then `make run`. Ollama uses the Mac's GPU,
+AlignScore and the entailment model use it too (MPS), the retriever runs on the CPU. The fp16 model needs about 17 GB
+of the Mac's shared memory, so at least a 32 GB Mac, and it is far slower than a 4090: use it for a pilot, not the grid.
+
+### 2. On a rented GPU server (vast.ai)
+
+The thesis repo and its environment set up as in its `SETUP.md` ("Rented GPU server"):
 
 ```bash
 # from the laptop: the thesis code (its own script) and this repo
 bash ../Ra-Rag-Thesis-Adaptation/scripts/server_backup.sh code <host> <port>
 make push HOST=<host> PORT=<port>
-# on the server, Ollama running (thesis scripts/setup_ollama.sh)
-cd /workspace/rarag-sl-eval && make run CONFIG=configs/confirm.yaml THESIS=/workspace/Ra-Rag-Thesis-Adaptation
+# on the server (in tmux), after the thesis scripts/setup_server.sh and scripts/setup_ollama.sh
+cd /workspace/rarag-sl-eval && make run THESIS=/workspace/Ra-Rag-Thesis-Adaptation
 # back on the laptop, whenever you want the latest
 make pull HOST=<host> PORT=<port> && make report
 ```
 
-`make run` resumes where it stopped (saved analyses are skipped) and logs to `logs/run.log`. `make dry` lists what is
-left. One dataset and seed of the full grid is about 3 GPU hours (about 50,000 LLM answers); the analyses on cached
-answers take minutes.
+### 3. On a laptop without a usable GPU, from cached answers
 
-**Several GPUs.** `make run` finds the GPUs (`nvidia-smi`) and starts workers for them: one per 21 GB of a GPU's memory
-(one on a 24 GB RTX 4090, two on a 48 GB A6000, three on an 80 GB A100/H100), each with its own Ollama server pinned to
-its GPU (ports 11500, 11501, …), the LLM, AlignScore, the entailment model and the retriever all on that GPU. The
-workers take the grid's setups one at a time from a shared queue (`results/.claims/`), so they finish together: the
-`confirm.yaml` grid (about 27 GPU hours) takes about 14 h on 2 GPUs and 7 h on 4. A model the default Ollama (port
-11434) holds on a GPU is unloaded first (the server keeps running); the workers' Ollama servers stop when the run ends.
-`make gpus` shows the plan without starting anything; `GPUS=2` uses the first two, `PER_GPU=1` one worker per GPU.
-Logs: `logs/run.log` (the launch), `logs/run.w<N>.log` (each worker), `logs/ollama.<port>.log`. With one GPU it is
-the plain single run on the Ollama already running.
-
-The LLM is `ollama_model` in the config (`llama3:8b-instruct-fp16`, the tag the earlier server runs used, so cached
-answers stay comparable); `OLLAMA_MODEL=…` overrides it, and every result records the tag it ran with.
-
-**On the laptop, from cached answers** (no LLM: setups whose answers a server already produced, e.g. a server backup):
+No LLM: only setups whose answers a server already produced (e.g. a server backup).
 
 ```bash
 make setup                                   # once: the reporting environment
@@ -83,13 +109,35 @@ make run-offline CONFIG=configs/pilot.yaml RUNS_DIR=../Ra-Rag-Thesis-Adaptation/
 make report CONFIG=configs/pilot.yaml
 ```
 
-`make test` checks the reporting path on synthetic results.
+### What `make run` does on the GPUs
 
-**Example documents.** `make examples` (same `CONFIG`, `RUNS_DIR`, `EMB` as above) writes, for 3 test questions of
-every setup (an attacked one first where there are attackers), `examples/<dataset>/seed<N>/<setup>/question_<idx>.txt`:
-what each source holds for the question, the passages it retrieved, the LLM's answer and whether AlignScore kept it;
-and `examples/<dataset>/documents_<idx>.txt`: every document generated for that question (gold paraphrases, each
-wrong answer's documents, the attackers' documents). It reads cached answers only. `--questions N` changes the count.
+It finds the GPUs (`nvidia-smi`) and starts workers: one per 21 GB of a GPU's memory (one on a 24 GB RTX 4090, two on
+a 48 GB A6000, three on an 80 GB A100/H100), each with its own Ollama server pinned to its GPU (ports 11500, 11501, …;
+4 requests at once, the setting measured best on a 24 GB card), the LLM, AlignScore, the entailment model and the
+retriever all on that GPU. Even with one GPU it starts its own Ollama, so the settings are the same on every machine
+whatever the installed Ollama service is set to; a model that service holds on a GPU is unloaded first (the service
+keeps running), and the run's own servers stop when it ends. The workers take the grid's setups one at a time from a
+shared queue (`results/.claims/`), so they finish together.
+
+One dataset and seed of the full grid is about 3 GPU hours (about 50,000 LLM answers): the `confirm.yaml` grid is about
+27 GPU hours, so about 27 h on one 24 GB GPU, 14 h on 2, 7 h on 4. The analyses on cached answers take minutes.
+
+`make gpus` shows the plan without starting anything; `GPUS=2` uses the first two GPUs, `PER_GPU=1` one worker per GPU.
+Logs: `logs/run.log` (the launch, and the run itself with one worker), `logs/run.w<N>.log` (each worker when there are
+several), `logs/ollama.<port>.log`.
+
+The LLM is `ollama_model` in the config (`llama3:8b-instruct-fp16`, the tag the earlier server runs used, so cached
+answers stay comparable); `OLLAMA_MODEL=…` overrides it, and every result records the tag it ran with.
+
+`make test` checks the reporting path and the GPU planning on synthetic inputs.
+
+### Example documents
+
+`make examples` (same `CONFIG`, `RUNS_DIR`, `EMB` as `make run-offline`) writes, for 3 test questions of every setup (an
+attacked one first where there are attackers), `examples/<dataset>/seed<N>/<setup>/question_<idx>.txt`: what each
+source holds for the question, the passages it retrieved, the LLM's answer and whether AlignScore kept it; and
+`examples/<dataset>/documents_<idx>.txt`: every document generated for that question (gold paraphrases, each wrong
+answer's documents, the attackers' documents). It reads cached answers only. `--questions N` changes the count.
 
 ## Adding a dataset
 

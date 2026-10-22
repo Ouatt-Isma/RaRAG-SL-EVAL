@@ -26,7 +26,7 @@ def test_workers_per_gpu_follow_memory():
     assert len(set(ports)) == len(ports)                      # one Ollama server per worker
     assert [g["index"] for g, _ in launch.plan(gpus, n_gpus=2)] == [0, 1]
     assert [g["index"] for g, _ in launch.plan(gpus, per_gpu=1)] == [0, 1, 2, 3]
-    assert launch.plan([]) == [(None, None)]                  # no GPU: the plain run
+    assert launch.plan([]) == [(None, launch.FIRST_PORT)]     # no GPU: one worker (e.g. Ollama on a Mac's GPU)
     assert [g for g, _ in launch.plan([], workers=2)] == [None, None]
 
 
