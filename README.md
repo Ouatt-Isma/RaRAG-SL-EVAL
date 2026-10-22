@@ -45,24 +45,24 @@ each one per dataset, over all runs (mean, 95% interval) and how many runs agree
 
 ## Running
 
-Three ways, depending on the machine. In all of them `make run` resumes where it stopped (saved analyses are
-skipped), `make dry` lists what is left, and `make report` can be run at any time, also during a run.
+Three ways, depending on the machine. In all of them a run resumes where it stopped (saved analyses are skipped),
+`make dry` lists what is left, and `make report` can be run at any time, also during a run.
 
 ### 1. On a machine with its own GPU, used directly (a workstation or a laptop)
 
 Linux, or Windows with WSL 2, an NVIDIA driver installed (`nvidia-smi` works). Nothing is copied anywhere: run and
 report on the same machine.
 
-Both repositories are private: log in to GitHub on the machine first (`gh auth login`, or a personal access token
-when git asks for a password).
+Both repositories are private: the machine needs access to GitHub first, either an SSH key added to your GitHub
+account (for the `git@` addresses) or `gh auth login` / a personal access token as the password (for the `https` ones).
 
 ```bash
 # 1. this repo, then the thesis repo beside it (same parent folder: this repo finds it there)
 git clone git@github.com:Ouatt-Isma/RaRAG-SL-EVAL.git
 git clone -b feature/sl-minimal-model git@github.com:ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
-or 
-git clone https://github.com/Ouatt-Isma/RaRAG-SL-EVAL.git
-git clone -b feature/sl-minimal-model https://github.com/ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
+#    or, over https:
+#    git clone https://github.com/Ouatt-Isma/RaRAG-SL-EVAL.git
+#    git clone -b feature/sl-minimal-model https://github.com/ATR-oCiTy/Ra-Rag-Thesis-Adaptation.git
 
 # 2. the thesis environment and the LLM (Ollama's installer may ask for your sudo password)
 cd Ra-Rag-Thesis-Adaptation
@@ -70,13 +70,31 @@ bash scripts/setup_server.sh        # Python 3.11 .venv with the tested packages
 bash scripts/setup_ollama.sh        # Ollama and Llama 3 8B fp16 (16 GB download), then one test answer
 cd ../RaRAG-SL-EVAL
 
-# 3. run (inside tmux or screen, so closing the terminal does not stop it)
-make setup                          # once: the reporting environment
-make gpus                           # check: the GPUs found and the workers it will start
-make run CONFIG=configs/pilot.yaml  # a short check first (NQ, seed 0, 6 setups)
-make run                            # the confirmation grid (configs/confirm.yaml)
-make report                         # tables, figures and report/results.pdf from what has finished
+# 3. run, inside tmux: it keeps going when the terminal closes or the connection drops
+sudo apt install -y tmux               # if it is not there yet
+make setup                             # once: the reporting environment
+make gpus                              # check: the GPUs found and the workers it will start
+make start CONFIG=configs/pilot.yaml   # a short check first (NQ, seed 0, 6 setups)
+make start                             # then the confirmation grid (configs/confirm.yaml)
+
+# while it runs
+make attach                            # watch it; Ctrl-b then d leaves it running
+make status                            # from any terminal: setups done, time left
+
+# 4. save the results: commit and push them to GitHub (any time during the run, and at the end)
+make save
 ```
+
+Then, on your laptop (or wherever you write the paper):
+
+```bash
+git pull && make report                # tables, figures and report/results.pdf from every result pushed so far
+```
+
+`make save` commits only the saved analyses (`results/<dataset>/…`, `results/runs.jsonl`) and the example documents,
+not what `make report` generates (`paper/`, `report/`, `results/rows.csv`, `results/claims.csv`): those are rebuilt
+from the results on the machine that pulls them, so the two machines never edit the same files. `make run` does the
+same as `make start` in the terminal itself (it stops when the terminal closes).
 
 **GPU memory.** The 16-bit model with the lab's models needs about 18.5 GB, so a 24 GB GPU (RTX 3090/4090, A5000,
 …). Most laptop GPUs have 8–16 GB: there Ollama keeps part of the model on the CPU and runs several times slower.
@@ -96,11 +114,14 @@ The thesis repo and its environment set up as in its `SETUP.md` ("Rented GPU ser
 # from the laptop: the thesis code (its own script) and this repo
 bash ../Ra-Rag-Thesis-Adaptation/scripts/server_backup.sh code <host> <port>
 make push HOST=<host> PORT=<port>
-# on the server (in tmux), after the thesis scripts/setup_server.sh and scripts/setup_ollama.sh
-cd /workspace/rarag-sl-eval && make run THESIS=/workspace/Ra-Rag-Thesis-Adaptation
+# on the server, after the thesis scripts/setup_server.sh and scripts/setup_ollama.sh (vast images have tmux)
+cd /workspace/rarag-sl-eval && make start THESIS=/workspace/Ra-Rag-Thesis-Adaptation
 # back on the laptop, whenever you want the latest
 make pull HOST=<host> PORT=<port> && make report
 ```
+
+Here the results come back by `make pull` (rsync), so the server needs no GitHub login: keep credentials off rented
+machines. Commit them from the laptop afterwards.
 
 ### 3. On a laptop without a usable GPU, from cached answers
 
@@ -125,6 +146,12 @@ shared queue (`results/.claims/`), so they finish together.
 
 One dataset and seed of the full grid is about 3 GPU hours (about 50,000 LLM answers): the `confirm.yaml` grid is about
 27 GPU hours, so about 27 h on one 24 GB GPU, 14 h on 2, 7 h on 4. The analyses on cached answers take minutes.
+
+**Time left.** A run prints how many setups are done and about how long is left, each time a setup finishes and at
+least every 30 minutes (in its tmux window and in `logs/run.log`); `make status` prints the same from any terminal. Until the first
+setup finishes it is a first guess (about 3 GPU hours per dataset and seed); after, it is the run's own pace, each
+setup weighed by its number of sources (a setup whose analyses are partly saved counts little: its LLM answers are
+cached). A setup takes about 20 minutes on a 24 GB GPU, so the estimate settles after the first half hour.
 
 `make gpus` shows the plan without starting anything; `GPUS=2` uses the first two GPUs, `PER_GPU=1` one worker per GPU.
 Logs: `logs/run.log` (the launch, and the run itself with one worker), `logs/run.w<N>.log` (each worker when there are

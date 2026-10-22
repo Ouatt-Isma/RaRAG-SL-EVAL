@@ -8,11 +8,15 @@ once, 2048-token context) are the same on every machine, whatever the installed 
   python -m rarag_eval.launch configs/confirm.yaml                 # every GPU
   python -m rarag_eval.launch configs/confirm.yaml --gpus 2        # the first 2 GPUs
   python -m rarag_eval.launch configs/confirm.yaml --plan          # what it would start, nothing more
+  python -m rarag_eval.launch configs/confirm.yaml --status        # how far the run is, time left (any terminal)
+  python -m rarag_eval.launch configs/confirm.yaml --tmux          # the same run, inside a detached tmux session
   (any other option goes to rarag_eval.run, e.g. --only dataset=NQ_paper)
 """
 import argparse
 import json
 import os
+import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -20,6 +24,7 @@ import time
 import urllib.request
 
 from . import share
+from .progress import Progress, only_filters
 from .run import load_config, log
 from .thesis import ROOT
 
@@ -119,7 +124,68 @@ def stop(procs):
             try:
                 p.wait(timeout=30)
             except subprocess.TimeoutExpired:
-                os.killpg(p.pid, signal.SIGKILL)
+                try:
+                    os.killpg(p.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+
+def wait(procs, progress, logfile, every=30 * 60):
+    """Until the workers end: the progress and time left each time a setup finishes, and every 30 minutes."""
+    last_n, last_t = 0, time.time()
+    while any(p.poll() is None for p in procs):
+        time.sleep(30)
+        n = len(progress.done()[0])
+        if n != last_n or time.time() - last_t >= every:
+            log(progress.line(), logfile)
+            last_n, last_t = n, time.time()
+    return [p.returncode for p in procs]
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
+
+
+def running():
+    try:
+        return alive(Progress.load().pid)
+    except (OSError, ValueError, KeyError):
+        return False
+
+
+def in_tmux(argv, session):
+    """Start this launch (argv: its options, less --tmux) inside a detached tmux session: it keeps going when the
+    terminal closes or the connection drops. The window stays open at the end, to read how it ended."""
+    if not shutil.which("tmux"):
+        raise SystemExit("tmux is not installed (Ubuntu, WSL: sudo apt install tmux; Mac: brew install tmux)")
+    if subprocess.run(["tmux", "has-session", "-t", session], capture_output=True).returncode == 0:
+        if running():
+            raise SystemExit(f"a run is going in tmux session {session}: make attach to watch it, make status for the time left")
+        subprocess.run(["tmux", "kill-session", "-t", session], check=True)   # the window of a run that ended
+    # a tmux server already running would give the session its own environment, not this shell's
+    keep = [f"{k}={os.environ[k]}" for k in ("OLLAMA_MODEL", "OLLAMA_NUM_PARALLEL", "THESIS_REPO", "CUDA_VISIBLE_DEVICES")
+            if k in os.environ]
+    cmd = shlex.join(["env", *keep, sys.executable, "-m", "rarag_eval.launch", *argv])
+    cmd += "; echo; echo 'The run has ended (log: logs/run.log). Press Enter to close this window.'; read _"
+    subprocess.run(["tmux", "new-session", "-d", "-s", session, "-c", ROOT, cmd], check=True)
+    print(f"started in tmux session {session}.\n  make attach   watch it (then Ctrl-b, d: leave it running)\n"
+          f"  make status   how far it is and the time left, from any terminal")
+
+
+def status():
+    try:
+        p = Progress.load()
+    except (OSError, ValueError):
+        print("no run started here yet")
+        return
+    alive_now = alive(p.pid)
+    print(f"{os.path.relpath(p.config, ROOT)}, {p.workers} worker{'s' if p.workers > 1 else ''}, started "
+          f"{time.strftime('%a %d %b %H:%M', time.localtime(p.t0))}{'' if alive_now else ' (not running now)'}")
+    print(p.line())
 
 
 def interrupted(*_):
@@ -133,9 +199,18 @@ def main():
     ap.add_argument("--per-gpu", type=int, help="workers per GPU (default: one per 21 GB of its memory)")
     ap.add_argument("--workers", type=int, help="this many workers, spread over the GPUs (testing: works without one)")
     ap.add_argument("--plan", action="store_true", help="print the GPUs and workers, start nothing")
+    ap.add_argument("--status", action="store_true", help="how far the run is and how long it has left")
+    ap.add_argument("--tmux", action="store_true", help="run inside a detached tmux session (see make attach)")
+    ap.add_argument("--session", default="eval", help="the tmux session's name")
     args, rest = ap.parse_known_args()
-    signal.signal(signal.SIGTERM, interrupted)   # e.g. the tmux session closed: stop the workers too
     cfg = load_config(args.config)
+    if args.status:
+        return status()
+    if args.tmux:
+        argv = [args.config, *(f"--{k.replace('_', '-')}={v}" for k, v in
+                               (("gpus", args.gpus), ("per_gpu", args.per_gpu), ("workers", args.workers)) if v), *rest]
+        return in_tmux(argv, args.session)
+    signal.signal(signal.SIGTERM, interrupted)   # e.g. the tmux session closed: stop the workers too
     logfile = os.path.join(ROOT, "logs", "run.log")
     os.makedirs(os.path.dirname(logfile), exist_ok=True)
     gpus = detect()
@@ -153,6 +228,9 @@ def main():
         return
 
     run = [sys.executable, "-m", "rarag_eval.run", args.config, *rest]
+    progress = Progress(args.config, only_filters(rest), len(workers))
+    progress.save()
+    log(progress.line(), logfile)
     share.clear_claims()
     servers, procs = [], []
     try:
@@ -170,8 +248,9 @@ def main():
                 env["OLLAMA_HOST"] = f"127.0.0.1:{port}"
             return env
 
-        if len(workers) == 1:   # in the foreground: its progress in this terminal
-            code = subprocess.call(run, cwd=ROOT, env=env_for(0, *workers[0]))
+        if len(workers) == 1:   # its own log lines in this terminal too
+            procs.append(subprocess.Popen(run, cwd=ROOT, env=env_for(0, *workers[0]), start_new_session=True))
+            code = wait(procs, progress, logfile)[0]
             log(f"run done (exit code {code})", logfile)
             return
         for w, (g, port) in enumerate(workers):
@@ -181,13 +260,14 @@ def main():
             procs.append(subprocess.Popen(run + ["--claim", "--log", wlog], cwd=ROOT, env=env, stdout=subprocess.DEVNULL,
                                           stderr=err, start_new_session=True))
             log(f"worker {w} on GPU {g['index'] if g else '-'}: started, log {wlog}", logfile)
-        codes = [p.wait() for p in procs]
+        codes = wait(procs, progress, logfile)
         log(f"workers done (exit codes {codes})", logfile)
     except KeyboardInterrupt:
         log("stopped: stopping the workers (saved analyses are kept; make run resumes)", logfile)
     finally:
         stop(procs)
         stop(servers)
+    log(progress.line(), logfile)
     log("DONE", logfile)
 
 

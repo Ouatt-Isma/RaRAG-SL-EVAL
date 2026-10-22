@@ -41,3 +41,11 @@ def test_each_setup_is_claimed_once(tmp_path):
     assert sorted(u for u, _ in taken) == list(range(20))
     share.clear_claims(str(tmp_path))
     assert share.claim("NQ_paper.json", 0, "u0", root=str(tmp_path))
+
+
+def test_progress_helpers():
+    from rarag_eval import progress
+    assert progress.only_filters(["--offline", "--only", "dataset=NQ_paper", "seed=0", "--runs-dir", "x"]) == \
+        {"dataset": "NQ_paper", "seed": "0"}
+    assert progress.duration(59) == "0 min" and progress.duration(3 * 3600 + 5 * 60) == "3 h 05 min"
+    assert progress.sources({"kind": "mix5"}) == 5 and progress.sources({"kind": "attackers"}) == 9

@@ -6,14 +6,30 @@ PY ?= .venv/bin/python
 HOST ?=
 PORT ?= 22
 REMOTE ?= /workspace
+SESSION ?= eval
 
-.PHONY: setup run gpus run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
 
 run:                   ## the grid, with the LLM, on every GPU of the server (GPUS=n: the first n; PER_GPU=n workers each)
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
+
+start:                 ## make run inside tmux: it keeps going when the terminal closes or the connection drops
+	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --tmux --session $(SESSION) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
+
+attach:                ## watch the run make start started (Ctrl-b then d: leave it running)
+	tmux attach -t $(SESSION)
+
+save:                  ## commit the results so far and push them (any time, also during a run); the laptop: git pull && make report
+	git add -A -- results examples ':!results/rows.csv' ':!results/claims.csv'
+	@if git diff --cached --quiet; then echo "nothing new to save"; else \
+	  git commit -q -m "Results: $$(find results -name '*.json.gz' | wc -l | tr -d ' ') analyses ($$(hostname), $$(date '+%Y-%m-%d %H:%M'))" && \
+	  git push && echo "saved and pushed: $$(git log -1 --format=%s)"; fi
+
+status:                ## how far make run is and how long it has left (from any terminal)
+	@$(RUN_PY) -m rarag_eval.launch $(CONFIG) --status
 
 gpus:                  ## the GPUs found and the workers make run would start
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --plan $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
