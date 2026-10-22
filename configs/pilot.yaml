@@ -1,0 +1,15 @@
+# A small grid to check the pipeline end to end: NQ, seed 0, the setups whose LLM answers the thesis runs
+# already cached (the robustness sweep), so it also runs offline on a laptop from a server backup.
+model: ollama_llama3_8b
+n_est: 200
+n_test: 600
+seeds: [0]
+datasets:
+  - NQ_paper.json
+setups:
+  - {id: unreliable_k3, kind: unreliable, k: 3}
+  - {id: unreliable_k7, kind: unreliable, k: 7}
+  - {id: attackers_k1, kind: attackers, k: 1}
+  - {id: attackers_k2, kind: attackers, k: 2}
+  - {id: attackers_k3, kind: attackers, k: 3}
+  - {id: attackers_k4, kind: attackers, k: 4}

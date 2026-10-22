@@ -1,0 +1,108 @@
+% The results document: rebuilt by `make report` from the saved results. Text here is fixed; every number
+% comes from the generated tables (../paper/tables), figures (../paper/figures) and facts (generated/).
+\documentclass[10pt]{article}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{caption}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{../paper/figures/}}
+% keep every table where it is input (the generated tables carry no placement option)
+\floatplacement{table}{H}
+\renewenvironment{table*}{\begin{table}}{\end{table}}
+\input{generated/facts}
+
+\title{Trust for multi-source RAG under attack:\\ results across datasets and seeds}
+\author{Generated from the saved runs}
+\date{Built \builtat}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Scope.} \nanalyses{} analyses over \nunits{} dataset--seed runs (datasets: \datasets; seeds: \seeds).
+Every method answers the same cached LLM answers (\model{}, thesis code at \thesiscommit), so differences come only
+from how sources are trusted and how the answer is chosen. Each setup has 9 sources (5 for the honest mix, 7 for the
+domain experts) with 200 warm-up and 600 test questions; RA-RAG's answering asks $\kappa = 4$ sources; accuracy uses
+the fair match.
+
+\section{Summary of results}
+Each result of the first evaluation series is a comparison between a baseline and a method on the same test
+questions. Table~\ref{tab:claims} gives the difference on every dataset and over all runs, Figure~\ref{fig:claims}
+the same with its interval.
+
+\input{../paper/tables/claims}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{claims_forest}
+\caption{Method minus baseline for each result (percentage points): per dataset (markers) and over every dataset and
+seed (bar: mean; line: 95\% interval).}
+\label{fig:claims}
+\end{figure}
+
+\section{Attacks and forgetting}
+Coordinated attackers answer honestly through the warm-up, then all give the same wrong answer on half the test
+questions. A trust frozen after the warm-up keeps trusting them; a trust that keeps learning and forgets old evidence
+does not. Tables~\ref{tab:attackers_accuracy} and~\ref{tab:attackers_attack}, Figure~\ref{fig:attackers}.
+
+\input{../paper/tables/attackers_accuracy}
+\input{../paper/tables/attackers_attack}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{attackers_accuracy}\\[4pt]
+\includegraphics[width=\linewidth]{attackers_attack}
+\caption{Accuracy (top) and attacks that succeed (bottom) against the number of attackers among 9 sources; mean over
+seeds, band: range over seeds.}
+\label{fig:attackers}
+\end{figure}
+
+\section{Unreliable sources}
+Unreliable sources are right only 10\% of the time and disagree with each other. Learning any trust removes most of
+their harm; equal weights does not (Table~\ref{tab:unreliable}).
+
+\input{../paper/tables/unreliable}
+
+\section{Few warm-up questions}
+With a handful of warm-up answers, RA-RAG's estimate (a raw share of agreements) swings to extremes; SL's trust starts
+from a prior and moves with the evidence (Table~\ref{tab:warmup}, Figure~\ref{fig:warmup}).
+
+\input{../paper/tables/warmup}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.55\linewidth]{warmup}
+\caption{SL's frozen trust minus RA-RAG's frozen estimate (accuracy points) by number of warm-up questions.}
+\label{fig:warmup}
+\end{figure}
+
+\section{Domain experts}
+Each expert is right 90\% of the time in its own domain and 30\% elsewhere; two generalists are right 60\% of the
+time everywhere. The system is never told who is an expert. Trust is learned per domain, with each question placed
+among the domains by the LLM's label, by the nearest domain centroid of its embedding, or by soft weights over the
+domains (Table~\ref{tab:domains}, Figure~\ref{fig:domains}).
+
+\input{../paper/tables/domains}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.55\linewidth]{domains}
+\caption{SL's accuracy with trust per domain, by how questions are placed among domains (mean over seeds, bar: range).}
+\label{fig:domains}
+\end{figure}
+
+\section{SL's own answering}
+Instead of RA-RAG's vote over the four most trusted sources, SL can answer by itself: it asks every source, fuses
+their evidence, and answers, says \emph{unknown}, or says \emph{conflict} and shows two answers (Table~\ref{tab:answering}).
+
+\input{../paper/tables/answering}
+
+\appendix
+\section{Runs}
+\input{../paper/tables/status}
+
+\end{document}

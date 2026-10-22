@@ -1,0 +1,33 @@
+# The confirmation grid: the first evaluation series' setups on every dataset and seed.
+# Each setup is one lab scenario (one round of LLM answers) per dataset and seed; its analyses reuse those answers.
+model: ollama_llama3_8b
+n_est: 200            # warm-up questions
+n_test: 600           # test questions
+kappa: 4              # sources RA-RAG's answering asks (the paper's)
+top_k: 3              # documents per source
+filtering_threshold: 0.1   # AlignScore tau (the paper's text)
+coverage: 0.6         # share of questions each source has documents for
+target_fraction: 0.5  # share of test questions attackers attack
+seeds: [0, 1, 2]
+datasets:
+  - NQ_paper.json
+  - TQA_paper.json
+  - HotpotQA_paper.json
+  # - LIAR_RAW.json    # fact-checking claims: needs the claims build first (see README)
+  # - RAWFC.json
+setups:
+  - {id: unreliable_k3, kind: unreliable, k: 3}     # the paper's Table A4 mix (3 unreliable + 6 reliable)
+  - {id: unreliable_k7, kind: unreliable, k: 7}
+  - id: mix5
+    kind: mix5                                       # five honest sources, 0.53 to 0.91
+    warmup: {sizes: [5, 10, 20], draws: 10}          # few warm-up questions, frozen trust
+  - {id: attackers_k1, kind: attackers, k: 1}
+  - {id: attackers_k2, kind: attackers, k: 2}
+  - {id: attackers_k3, kind: attackers, k: 3}
+  - {id: attackers_k4, kind: attackers, k: 4}
+  - {id: switch, kind: switch, k: 3}                 # 3 attackers honest until halfway through the test
+  - id: experts
+    kind: experts                                    # one expert per frequent domain + 2 generalists
+    expert: 0.9
+    outside: 0.3
+    domains: {placements: [global, domain, centroid, soft], sizes: [15, 60], draws: 3}

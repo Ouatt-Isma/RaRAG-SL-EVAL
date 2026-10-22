@@ -1,0 +1,17 @@
+\begin{table}
+\centering
+\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Domain of a question & \multicolumn{2}{c}{NQ} & \multicolumn{2}{c}{TriviaQA} & \multicolumn{2}{c}{HotpotQA} \\
+ & SL & RA-RAG & SL & RA-RAG & SL & RA-RAG \\
+\midrule
+No domains & -- & -- & -- & -- & -- & -- \\
+LLM's labels & -- & -- & -- & -- & -- & -- \\
+Nearest centroid & -- & -- & -- & -- & -- & -- \\
+Soft weights & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{Domain experts (right 90\% of the time in their domain, 30\% elsewhere): accuracy with trust learned per domain online, by how each question is placed among the domains, full warm-up. RA-RAG's estimator runs per domain on each question's top domain.}
+\label{tab:domains}
+\end{table}

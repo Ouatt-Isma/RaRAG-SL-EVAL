@@ -1,0 +1,21 @@
+\begin{table}
+\centering
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Trust & 3 of 9 & 7 of 9 \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{NQ}} \\
+\quad RA-RAG, frozen (paper) & 85.0 & 69.2 \\
+\quad RA-RAG online & 85.5 & 69.5 \\
+\quad RA-RAG, window of 100 & 85.8 & 69.7 \\
+\quad SL, frozen & 84.8 & 71.3 \\
+\quad SL online, no forgetting & 84.5 & 69.3 \\
+\quad SL, aging $\lambda=0.97$ & 85.8 & 69.0 \\
+\quad SL, window of 100 & 85.7 & 70.0 \\
+\quad Equal weights & 81.7 & 32.5 \\
+\bottomrule
+\end{tabular}
+\caption{Static unreliable sources (right 10\% of the time) among 9: accuracy in percent.}
+\label{tab:unreliable}
+\end{table}

@@ -1,0 +1,19 @@
+\begin{table*}
+\centering
+\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+Setup & Answers & Right & RA-RAG, same cov. & Conflict right & Unknown wrong & \multicolumn{2}{c}{Attacks succeed} \\
+ & & & & & & SL & RA-RAG \\
+\midrule
+3 unreliable of 9 & 70.8 & 90.6 & 89.6 & 63.2 & 35.8 & -- & -- \\
+7 unreliable of 9 & 0.0 & -- & -- & -- & 50.8 & -- & -- \\
+1 attacker of 9 & 90.2 & 89.5 & 89.5 & 64.3 & 55.9 & 0.0 & 0.6 \\
+2 attackers of 9 & 89.2 & 88.4 & 88.4 & 73.7 & 50.0 & 2.0 & 3.2 \\
+3 attackers of 9 & 83.5 & 85.2 & 87.6 & 87.0 & 55.6 & 10.2 & 7.7 \\
+4 attackers of 9 & 79.7 & 69.5 & 69.0 & 84.2 & 54.3 & 38.0 & 46.1 \\
+\bottomrule
+\end{tabular}
+\caption{SL's own answering (answer, \emph{unknown} or \emph{conflict}) with its online trust and aging: share of questions answered, accuracy on those, RA-RAG's accuracy on its most confident questions at the same coverage and trust, conflicts whose two answers include the right one, \emph{unknown} questions whose top answer would have been wrong, and attacks that succeed with SL's answering and with RA-RAG's on the same trust. Means over all datasets and seeds.}
+\label{tab:answering}
+\end{table*}

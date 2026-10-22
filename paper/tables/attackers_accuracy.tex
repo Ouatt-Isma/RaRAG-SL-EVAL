@@ -1,0 +1,21 @@
+\begin{table}
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Trust & 1 of 9 & 2 of 9 & 3 of 9 & 4 of 9 \\
+\midrule
+\multicolumn{5}{@{}l}{\textit{NQ}} \\
+\quad RA-RAG, frozen (paper) & 84.7 & 68.2 & 58.5 & 52.0 \\
+\quad RA-RAG online & 86.0 & 82.7 & 79.5 & 51.3 \\
+\quad RA-RAG, window of 100 & 86.3 & 85.8 & 83.5 & 56.2 \\
+\quad SL, frozen & 86.0 & 69.3 & 59.2 & 53.0 \\
+\quad SL online, no forgetting & 86.0 & 83.7 & 78.0 & 53.2 \\
+\quad SL, aging $\lambda=0.97$ & 86.8 & 86.0 & 83.5 & 63.3 \\
+\quad SL, window of 100 & 86.8 & 86.2 & 83.8 & 63.2 \\
+\quad Equal weights & 85.8 & 80.5 & 75.7 & 56.8 \\
+\bottomrule
+\end{tabular}
+\caption{Coordinated build-then-betray attackers among 9 sources (and 3 attackers switching halfway through the test): accuracy in percent, mean over seeds with the spread as a subscript.}
+\label{tab:attackers_accuracy}
+\end{table}
