@@ -135,17 +135,27 @@ of the Mac's shared memory, so at least a 32 GB Mac, and it is far slower than a
 
 ### 2. On a rented GPU server (vast.ai)
 
-The thesis repo and its environment set up as in its `SETUP.md` ("Rented GPU server"):
-
 ```bash
-# from the laptop: the thesis code (its own script) and this repo
+# 1. from the laptop: the thesis code (its own script) and this repo, to /workspace on the server
 bash ../Ra-Rag-Thesis-Adaptation/scripts/server_backup.sh code <host> <port>
 make push HOST=<host> PORT=<port>
-# on the server, after the thesis scripts/setup_server.sh and scripts/setup_ollama.sh (vast images have tmux)
-cd /workspace/rarag-sl-eval && make start THESIS=/workspace/Ra-Rag-Thesis-Adaptation
-# back on the laptop, whenever you want the latest
+
+# 2. on the server, once per new server: the thesis environment (its .venv, AlignScore's checkpoint) and the LLM;
+#    the copy above leaves them out, so make stops with "No thesis environment" until this is done
+cd /workspace/Ra-Rag-Thesis-Adaptation
+bash scripts/setup_server.sh        # about 10 min
+bash scripts/setup_ollama.sh        # Ollama and Llama 3 8B fp16 (16 GB download)
+
+# 3. on the server: run, as in case 1 (vast images have tmux)
+cd /workspace/rarag-sl-eval
+make setup && make gpus
+make start ONLY="dataset=TQA_paper seed=0 setup=attackers_k2"   # a first check, then: make start
+
+# 4. back on the laptop, whenever you want the latest
 make pull HOST=<host> PORT=<port> && make report
 ```
+
+The two repositories sit side by side in `/workspace`, so no `THESIS=…` is needed.
 
 Here the results come back by `make pull` (rsync), so the server needs no GitHub login: keep credentials off rented
 machines. Commit them from the laptop afterwards.

@@ -2,6 +2,9 @@
 CONFIG ?= configs/confirm.yaml
 THESIS ?= ../Ra-Rag-Thesis-Adaptation
 RUN_PY ?= $(THESIS)/.venv/bin/python
+# the thesis repo's environment: on a new server, the thesis repo's setup scripts make it (README, step 2)
+NEED_THESIS = test -x $(RUN_PY) || { echo "No thesis environment at $(RUN_PY). Set up the thesis repo first, once:"; \
+  echo "  cd $(THESIS) && bash scripts/setup_server.sh && bash scripts/setup_ollama.sh"; exit 1; }
 PY ?= .venv/bin/python
 HOST ?=
 PORT ?= 22
@@ -14,9 +17,11 @@ setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
 
 run:                   ## the grid, with the LLM, on every GPU of the server (GPUS=n: the first n; PER_GPU=n workers each)
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU)) $(if $(ONLY),--only $(ONLY))
 
 start:                 ## make run inside tmux: it keeps going when the terminal closes or the connection drops (ONLY="dataset=… seed=… setup=…": part of the grid)
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --tmux --session $(SESSION) $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU)) $(if $(ONLY),--only $(ONLY))
 
 attach:                ## watch the run make start started (Ctrl-b then d: leave it running)
@@ -29,24 +34,30 @@ save:                  ## commit the results so far and push them (any time, als
 	  git push && echo "saved and pushed: $$(git log -1 --format=%s)"; fi
 
 status:                ## how far make run is and how long it has left (from any terminal)
+	@$(NEED_THESIS)
 	@$(RUN_PY) -m rarag_eval.launch $(CONFIG) --status
 
 claims:                ## optional: build the fact-checking datasets RAWFC and LIAR-RAW (local LLM, about 3-4 h each), in tmux
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.factcheck $(CONFIG) --tmux
 
 claims-check:          ## optional, first: build 3 RAWFC claims and print them (a few minutes; nothing kept)
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.factcheck $(CONFIG) --check 3
 
 claims-status:         ## how far make claims is
 	@grep -E "built,|FAILED|done:|already built" logs/claims.log 2>/dev/null | tail -n 2 || echo "no claims build started here yet"
 
 gpus:                  ## the GPUs found and the workers make run would start
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --plan $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
 
 run-offline:           ## the grid from cached answers only (laptop): RUNS_DIR=<a server backup's vector_cache>
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.run $(CONFIG) --offline $(if $(RUNS_DIR),--runs-dir $(RUNS_DIR)) $(if $(EMB),--embeddings $(EMB))
 
 dry:                   ## what the grid still has to run
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.run $(CONFIG) --dry-run $(if $(ONLY),--only $(ONLY))
 
 report:                ## tables, figures and report/results.pdf from results/
@@ -56,6 +67,7 @@ report-nopdf:
 	$(PY) -m rarag_eval.report $(CONFIG) --no-pdf
 
 examples:              ## example source documents and answers as .txt in examples/ (cached answers only)
+	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.examples $(CONFIG) $(if $(RUNS_DIR),--runs-dir $(RUNS_DIR)) $(if $(EMB),--embeddings $(EMB))
 
 test:
