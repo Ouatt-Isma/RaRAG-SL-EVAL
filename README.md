@@ -149,7 +149,9 @@ bash scripts/setup_ollama.sh        # Ollama and Llama 3 8B fp16 (16 GB download
 # 3. on the server: run, as in case 1 (vast images have tmux)
 cd /workspace/rarag-sl-eval
 make setup && make gpus
-make start ONLY="dataset=TQA_paper seed=0 setup=attackers_k2"   # a first check, then: make start
+make start ONLY="dataset=TQA_paper seed=0 setup=attackers_k2"   # a first check: one setup, about 20 min
+make status                         # when it says all done, run the rest of the grid:
+make start                          # the confirmation grid (configs/confirm.yaml)
 
 # 4. back on the laptop, whenever you want the latest
 make pull HOST=<host> PORT=<port> && make report
