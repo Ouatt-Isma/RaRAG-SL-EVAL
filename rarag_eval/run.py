@@ -9,6 +9,7 @@ thesis lab (Ollama on a GPU server); --offline uses cached answers only and skip
 """
 import argparse
 import os
+import re
 import time
 import traceback
 
@@ -61,6 +62,29 @@ def log(msg, path):
         f.write(line + "\n")
 
 
+class LogJob:
+    """The lab reports a long step's progress on a job (its web page polls it: .progress, .message); here it goes to
+    the log, when the step changes and at least every 3 minutes, so building the sources, the warm-up answers and
+    the test answers are not silent for half an hour."""
+
+    def __init__(self, name, path, every=180):
+        self.name, self.path, self.every = name, path, every
+        self.progress, self._message, self._step, self._at = 0.0, "", None, 0.0
+
+    @property
+    def message(self):
+        return self._message
+
+    @message.setter
+    def message(self, text):
+        self._message = text
+        step = re.sub(r"[\d.,/%]+", "#", text or "")
+        if step != self._step or time.time() - self._at >= self.every:
+            self._step, self._at = step, time.time()
+            pct = f" ({self.progress:.0%})" if self.progress else ""
+            log(f"  {self.name}: {text}{pct}", self.path)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config")
@@ -110,16 +134,18 @@ def main():
                 if args.offline and not os.path.exists(os.path.join(sc.run_dir, "corpora.pkl")):
                     log(f"{name}: skipped (offline, sources never built)", logfile)
                     continue
-                sc.build()
+                sc.build(LogJob(name, logfile))
             if sc.estimation is None and not sc.load_cached_estimation():
                 if args.offline:
                     log(f"{name}: skipped (offline, no cached warm-up answers)", logfile)
                     continue
-                sc.estimate()
+                sc.estimate(LogJob(name, logfile))
             log(f"{name}: run {sc.run_name} ready in {time.perf_counter() - t0:.0f} s", logfile)
             for analysis, kind, settings in missing:
                 t1, memo0 = time.perf_counter(), len(th.nli()._memo)
-                body = analyses.swap(th, sc, settings, cfg["kappa"]) if kind == "swap" else analyses.compare(th, sc, settings)
+                job = LogJob(f"{name} {analysis}", logfile)
+                body = (analyses.swap(th, sc, settings, cfg["kappa"], job) if kind == "swap"
+                        else analyses.compare(th, sc, settings, job))
                 body["meta"] = {"dataset": store.dataset_name(dataset), "seed": seed, "setup": setup["id"], "setup_spec": setup,
                                 "analysis": analysis, "kind": kind, "settings": {**analyses.BASE, **settings},
                                 "kappa": cfg["kappa"], "n_est": cfg["n_est"], "n_test": cfg["n_test"], "run": sc.run_name,

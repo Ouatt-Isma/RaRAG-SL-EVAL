@@ -79,11 +79,11 @@ def _sources(sc, res):
     return out
 
 
-def swap(th, sc, settings, kappa):
+def swap(th, sc, settings, kappa, job=None):
     """RA-RAG's answering with each reliability: per row, the outcome of every test question (fair and strict
     match) and the winner's vote share."""
     run = th.sl_minimal.MinimalRun(sc, {**BASE, **settings})
-    res = run.swap()
+    res = run.swap(job)
     rows, idxs = {}, None
     for name, spec in res["variants"].items():
         rs = spec["by_kappa"][kappa - 1]["rows"]
@@ -100,12 +100,12 @@ def swap(th, sc, settings, kappa):
     return {"questions": _questions(sc, idxs), "sources": _sources(sc, res), "rows": rows, "extra": extra}
 
 
-def compare(th, sc, settings):
+def compare(th, sc, settings, job=None):
     """SL's own answering next to RA-RAG's: per row, the decision on every test question (c/w/a answered right,
     wrong or with the attackers' answer; u unknown; k conflict; x nobody answered), the top candidate's outcome,
     whether a conflict showed the right answer, and the confidence."""
     run = th.sl_minimal.MinimalRun(sc, {**BASE, **settings})
-    res = run.compare()
+    res = run.compare(job)
     rows, idxs = {}, None
     for name, spec in res["variants"].items():
         rs = spec["rows"]

@@ -193,6 +193,16 @@ def status():
           f"{time.strftime('%a %d %b %H:%M', time.localtime(p.t0))}"
           + ("" if alive_now else f", ended {time.strftime('%H:%M', time.localtime(p.t_end))}" if p.t_end else " (not running now)"))
     print(p.line())
+    if alive_now:   # what each worker is doing now: its log's last line
+        logs = ([os.path.join(ROOT, "logs", f"run.w{w}.log") for w in range(p.workers)] if p.workers > 1
+                else [os.path.join(ROOT, "logs", "run.log")])
+        for w, path in enumerate(logs):
+            try:
+                if os.path.getmtime(path) >= p.t0:
+                    with open(path) as f:
+                        print(f"  worker {w}: {f.read().rstrip().splitlines()[-1].strip()}")
+            except (OSError, IndexError):
+                pass
 
 
 def interrupted(*_):
