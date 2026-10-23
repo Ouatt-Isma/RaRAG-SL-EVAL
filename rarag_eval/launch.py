@@ -15,6 +15,7 @@ once, 2048-token context) are the same on every machine, whatever the installed 
 import argparse
 import json
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -60,6 +61,14 @@ def detect():
 CUDA_CHECK = "import torch; torch.ones(8, device='cuda').sum().item()"
 
 
+def last_error(text):
+    """The exception line of a traceback ("torch.AcceleratorError: CUDA error: ..."), not a hint that only mentions
+    an error name; the last line when there is none."""
+    lines = [l.strip() for l in (text or "").strip().splitlines() if l.strip()]
+    found = [l for l in lines if re.match(r"^[\w.]*(Error|Exception)\b.*:", l)]
+    return (found or lines or [""])[-1][:240]
+
+
 def healthy(gpus, logfile, python=sys.executable):
     """The GPUs a worker can use. Each GPU holds two processes, its Ollama server and its worker, so one that
     allows a single process (compute mode Exclusive_Process or Prohibited) is left out, and so is one where a
@@ -83,8 +92,7 @@ def healthy(gpus, logfile, python=sys.executable):
         if p.returncode == 0:
             out.append(g)
         else:
-            last = next((l for l in reversed(err.strip().splitlines()) if "Error" in l), err.strip()[-200:])
-            log(f"GPU {g['index']} left out: a small CUDA test failed there ({last.strip()})", logfile)
+            log(f"GPU {g['index']} left out: a small CUDA test failed there ({last_error(err)})", logfile)
     return out
 
 
@@ -127,11 +135,13 @@ def start_ollama(gpu, port, logfile, context=2048):
     if up(host):
         log(f"Ollama at {host}: already running, reused", logfile)
         return host, None
+    # OLLAMA_VULKAN off: through Vulkan Ollama sees every GPU, whatever CUDA_VISIBLE_DEVICES says, and puts the model
+    # on the one with the most free memory, another worker's (2026-10-23: out of memory, thousands of empty answers)
     env = {**os.environ, "OLLAMA_HOST": host, "OLLAMA_NUM_PARALLEL": os.environ.get("OLLAMA_NUM_PARALLEL", "4"),
-           "OLLAMA_CONTEXT_LENGTH": str(context), "OLLAMA_KEEP_ALIVE": "-1"}
+           "OLLAMA_CONTEXT_LENGTH": str(context), "OLLAMA_KEEP_ALIVE": "-1", "OLLAMA_VULKAN": "false"}
     if gpu is not None:
         env["CUDA_VISIBLE_DEVICES"] = str(gpu["index"])
-    out = open(os.path.join(ROOT, "logs", f"ollama.{port}.log"), "a")
+    out = open(os.path.join(ROOT, "logs", f"ollama.{port}.log"), "w")   # this run's only: it logs every request
     proc = subprocess.Popen(["ollama", "serve"], env=env, stdout=out, stderr=subprocess.STDOUT,
                             stdin=subprocess.DEVNULL, start_new_session=True)
     for _ in range(60):
@@ -142,6 +152,38 @@ def start_ollama(gpu, port, logfile, context=2048):
         raise SystemExit(f"Ollama at {host} did not start; see logs/ollama.{port}.log")
     log(f"Ollama at {host} on GPU {gpu['index'] if gpu else '-'} started", logfile)
     return host, proc
+
+
+def verify(gpu, port, tag, logfile):
+    """Before any worker starts: the server loads the model on its own GPU through CUDA and answers a question. Run
+    on the wrong backend or out of memory, it answers every request with nothing, which the lab reads as "I don't
+    know": a whole grid of setups where no source seems to know anything."""
+    host = f"127.0.0.1:{port}"
+    try:
+        r = http(f"http://{host}/api/generate", {"model": tag, "prompt": "Answer with one word: what is the capital of France?",
+                                                 "stream": False, "options": {"num_predict": 8, "temperature": 0}}, timeout=900)
+    except Exception as e:
+        raise SystemExit(f"Ollama at {host} could not answer a test question ({e}); see logs/ollama.{port}.log")
+    text = (r.get("response") or "").strip()
+    if not text:
+        raise SystemExit(f"Ollama at {host} answered a test question with nothing; see logs/ollama.{port}.log")
+    backend = None
+    try:
+        with open(os.path.join(ROOT, "logs", f"ollama.{port}.log"), errors="replace") as f:
+            for line in f:
+                if "selecting GPU backend" in line:
+                    m = re.search(r"library=(\w+)", line)
+                    backend = m[1] if m else backend
+    except OSError:
+        pass
+    where = f"GPU {gpu['index']}" if gpu else "this machine"
+    if gpu is not None and backend and backend.lower() != "cuda":
+        raise SystemExit(f"Ollama at {host} put the model on {backend}, not on {where} through CUDA; see logs/ollama.{port}.log")
+    vram = sum(m.get("size_vram", 0) for m in http(f"http://{host}/api/ps").get("models", []))
+    if gpu is not None and not vram:
+        raise SystemExit(f"Ollama at {host} runs the model on the CPU, not on {where}; see logs/ollama.{port}.log")
+    log(f"Ollama at {host}: {tag} on {where}{' (' + backend + ')' if backend else ''}, {vram / 2**30:.1f} GB, "
+        f"test answer {text!r}", logfile)
 
 
 def stop(procs):
@@ -175,7 +217,7 @@ def wait(procs, progress, logfile, every=30 * 60, names=None, poll=30):
                 last = ""
                 try:
                     with open(err) as f:
-                        last = next((l.strip() for l in reversed(f.read().splitlines()) if "Error" in l), "")
+                        last = last_error(f.read())
                 except (OSError, TypeError):
                     pass
                 msg = f"{name} stopped with an error (exit {p.returncode}){': ' + last if last else ''}; the others go on"
@@ -306,6 +348,9 @@ def main():
             for g, port in workers:
                 host, proc = start_ollama(g, port, logfile)
                 servers.append(proc)
+            if cfg.get("ollama_model") or os.environ.get("OLLAMA_MODEL"):
+                for g, port in workers:
+                    verify(g, port, os.environ.get("OLLAMA_MODEL") or cfg["ollama_model"], logfile)
 
         def env_for(w, g, port):
             env = {**os.environ, "RARAG_WORKER": str(w)}

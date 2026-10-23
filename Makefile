@@ -11,7 +11,7 @@ PORT ?= 22
 REMOTE ?= /workspace
 SESSION ?= eval
 
-.PHONY: setup run start attach save gpus status claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status repair claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -48,6 +48,10 @@ claims-check:          ## optional, first: build 3 RAWFC claims and print them (
 claims-status:         ## how far make claims is
 	@grep -E "built,|FAILED|done:|already built" logs/claims.log 2>/dev/null | tail -n 2 || echo "no claims build started here yet"
 
+repair:                ## setups computed from empty LLM answers (failed requests): report; APPLY=1 drops them so make start redoes them
+	@$(NEED_THESIS)
+	$(RUN_PY) -m rarag_eval.repair $(CONFIG) $(if $(APPLY),--apply)
+
 gpus:                  ## the GPUs found and the workers make run would start
 	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.launch $(CONFIG) --plan $(if $(GPUS),--gpus $(GPUS)) $(if $(PER_GPU),--per-gpu $(PER_GPU))
@@ -81,7 +85,7 @@ push:                  ## this repo's code to the server (HOST=… PORT=…), sa
 
 pull:                  ## the server's results and run log back here
 	rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/results/ results/
-	rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/logs/ logs/
+	rsync -az -e "ssh -p $(PORT)" --exclude 'ollama.*.log' root@$(HOST):$(REMOTE)/rarag-sl-eval/logs/ logs/
 	-rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/examples/ examples/
 
 clean:

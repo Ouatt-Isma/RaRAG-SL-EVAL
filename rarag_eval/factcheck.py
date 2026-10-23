@@ -75,6 +75,8 @@ def main():
     try:
         launch.unload(os.environ.get("OLLAMA_HOST", launch.DEFAULT_OLLAMA).replace("http://", ""), LOG)
         host, proc = launch.start_ollama(gpu, PORT, LOG, context=4096)
+        if tag:
+            launch.verify(gpu, PORT, tag, LOG)
         env = {**os.environ, "OLLAMA_HOST": host, **({"OLLAMA_MODEL": tag} if tag else {}),
                **({"CUDA_VISIBLE_DEVICES": str(gpu["index"])} if gpu else {})}
         build = [sys.executable, "scripts/build_claims_dataset.py"]

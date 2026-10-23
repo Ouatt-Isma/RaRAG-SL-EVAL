@@ -132,3 +132,14 @@ def test_a_crashed_worker_is_reported_while_the_others_go_on(tmp_path):
     assert codes == [0, 1]
     assert "worker 1 on GPU 3 stopped with an error (exit 1): torch.AcceleratorError" in log.read_text()
     assert "stopped with an error" in own.read_text()     # what make status shows for that worker
+
+
+def test_last_error_is_the_exception_line():
+    err = """Traceback (most recent call last):
+  File "x.py", line 1, in <module>
+torch.AcceleratorError: CUDA error: CUDA-capable device(s) is/are busy or unavailable
+Search for `cudaErrorDevicesUnavailable' in https://docs.nvidia.com/cuda/ for more information.
+Returning 719 (CUDA_ERROR_LAUNCH_FAILED) from cuDevicePrimaryCtxRetain
+"""
+    assert launch.last_error(err) == "torch.AcceleratorError: CUDA error: CUDA-capable device(s) is/are busy or unavailable"
+    assert launch.last_error("just one line") == "just one line" and launch.last_error("") == ""

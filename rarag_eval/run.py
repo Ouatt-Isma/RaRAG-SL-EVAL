@@ -15,7 +15,7 @@ import traceback
 
 import yaml
 
-from . import analyses, setups, share, store
+from . import analyses, answers, setups, share, store
 from .thesis import ROOT, Thesis
 
 
@@ -85,6 +85,17 @@ class LogJob:
             log(f"  {self.name}: {text}{pct}", self.path)
 
 
+def no_empty_answers(sc, name):
+    """Stop a setup computed from failed LLM requests (empty answers, read as "I don't know") before anything of it
+    is saved; its empty answers are dropped from the cache, so the next run asks those questions again."""
+    rep = answers.check(sc.run_dir, sc.model)
+    if answers.has_empty(rep):
+        answers.clean(sc.run_dir, sc.model)
+        (we, wn), (te, tn) = rep["warmup"], rep["test"]
+        raise RuntimeError(f"the LLM gave empty answers (warm-up {we}/{wn}, test {te}/{tn}): failed requests, see "
+                           f"logs/ollama.*.log; dropped from the cache, the next make start asks them again")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config")
@@ -140,12 +151,14 @@ def main():
                     log(f"{name}: skipped (offline, no cached warm-up answers)", logfile)
                     continue
                 sc.estimate(LogJob(name, logfile))
+            no_empty_answers(sc, name)
             log(f"{name}: run {sc.run_name} ready in {time.perf_counter() - t0:.0f} s", logfile)
             for analysis, kind, settings in missing:
                 t1, memo0 = time.perf_counter(), len(th.nli()._memo)
                 job = LogJob(f"{name} {analysis}", logfile)
                 body = (analyses.swap(th, sc, settings, cfg["kappa"], job) if kind == "swap"
                         else analyses.compare(th, sc, settings, job))
+                no_empty_answers(sc, name)
                 body["meta"] = {"dataset": store.dataset_name(dataset), "seed": seed, "setup": setup["id"], "setup_spec": setup,
                                 "analysis": analysis, "kind": kind, "settings": {**analyses.BASE, **settings},
                                 "kappa": cfg["kappa"], "n_est": cfg["n_est"], "n_test": cfg["n_test"], "run": sc.run_name,

@@ -192,6 +192,14 @@ setup finishes it is a first guess (about 3 GPU hours per dataset and seed); aft
 setup weighed by its number of sources (a setup whose analyses are partly saved counts little: its LLM answers are
 cached). A setup takes about 20 minutes on a 24 GB GPU, so the estimate settles after the first half hour.
 
+**Checks against a broken LLM.** Before any worker starts, each Ollama server must load the model on its own GPU
+through CUDA (Vulkan is turned off: through it Ollama sees every GPU and loads the model on another worker's) and answer
+a test question; otherwise the run stops and says why. During the run, a setup whose LLM answers include empty ones
+(failed requests, which the lab would read as "I don't know") fails instead of being saved, and its empty answers are
+dropped from the cache so the next `make start` asks them again. For results from before these checks (2026-10-23),
+`make repair` on the server lists the setups computed from empty answers, with examples; `make repair APPLY=1` drops
+them, then `make start` redoes only those (good answers stay cached).
+
 `make gpus` shows the plan without starting anything; `GPUS=2` uses the first two GPUs, `PER_GPU=1` one worker per GPU.
 Logs: `logs/run.log` (the launch, and the run itself with one worker), `logs/run.w<N>.log` (each worker when there are
 several), `logs/ollama.<port>.log`.
