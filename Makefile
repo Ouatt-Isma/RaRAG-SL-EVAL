@@ -73,9 +73,11 @@ examples:              ## example source documents and answers as .txt in exampl
 test:
 	$(PY) -m pytest tests -q
 
-push:                  ## this repo's code to the server (HOST=… PORT=…); the thesis repo goes with its own server_backup.sh
+push:                  ## this repo's code to the server (HOST=… PORT=…), safe during a run; the thesis repo goes with its own server_backup.sh
 	rsync -az -e "ssh -p $(PORT)" --exclude .venv --exclude .git --exclude cache --exclude logs --exclude report/build \
-	  ./ root@$(HOST):$(REMOTE)/rarag-sl-eval/
+	  --exclude results ./ root@$(HOST):$(REMOTE)/rarag-sl-eval/
+	@# results only where the server has none yet (what is done is skipped there); never over the server's own
+	rsync -az --ignore-existing -e "ssh -p $(PORT)" results/ root@$(HOST):$(REMOTE)/rarag-sl-eval/results/
 
 pull:                  ## the server's results and run log back here
 	rsync -az -e "ssh -p $(PORT)" root@$(HOST):$(REMOTE)/rarag-sl-eval/results/ results/

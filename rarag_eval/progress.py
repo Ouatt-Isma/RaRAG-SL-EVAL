@@ -43,6 +43,14 @@ def only_filters(args):
     return out
 
 
+def first_guess(weights, gpus):
+    """Seconds these setups take: the work shared over the GPUs (two workers on one GPU are not twice as fast), but
+    never less than the longest setup, which runs on one worker."""
+    if not weights:
+        return 0.0
+    return max(sum(weights) * SECONDS_PER_SOURCE / max(1, gpus), max(weights) * SECONDS_PER_SOURCE)
+
+
 def duration(seconds):
     m = int(seconds // 60)
     return f"{m // 60} h {m % 60:02d} min" if m >= 60 else f"{m} min"
@@ -91,9 +99,12 @@ class Progress:
                     f"{len(left)} left (make start resumes)")
         if done_w:
             eta, how = left_w * elapsed / done_w, "at this run's pace"
-        else:
-            # per GPU, not per worker: two workers sharing a GPU are not twice as fast
-            eta, how = left_w * SECONDS_PER_SOURCE / self.gpus, "first guess, from about 3 GPU hours per dataset and seed"
+        else:   # the guess for the whole run, less the time already spent on it
+            eta = first_guess(list(self.start.values()), self.gpus) - elapsed
+            how = "first guess, from about 20 minutes per setup on a 24 GB GPU"
+            if eta < 60:
+                return (f"progress: 0 of {len(self.start)} setups done in {duration(elapsed)}; longer than the first guess, "
+                        f"the time left comes back when a setup finishes")
         end = time.strftime("%a %d %b %H:%M", time.localtime(time.time() + eta))
         return (f"progress: {len(done)} of {len(self.start)} setups done in {duration(elapsed)}; "
                 f"about {duration(eta)} left ({how}), finishing around {end}")

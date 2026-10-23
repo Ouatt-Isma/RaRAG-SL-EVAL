@@ -74,3 +74,17 @@ def test_tmux_command_for_the_claims_build(monkeypatch):
     new = calls[-1]
     assert new[:5] == ["tmux", "new-session", "-d", "-s", "claims"]
     assert "-m rarag_eval.factcheck configs/confirm.yaml;" in new[-1] and "logs/claims.log" in new[-1]
+
+
+def test_first_guess_counts_down_and_one_setup_runs_on_one_worker(monkeypatch):
+    from rarag_eval import progress
+    p = progress.Progress.__new__(progress.Progress)
+    p.start, p.gpus, p.t_end, p.t0 = {"TQA_paper seed 0 attackers_k2": 9}, 4, None, 1000.0
+    monkeypatch.setattr(p, "done", lambda: ([], dict(p.start)))
+    one_setup = 9 * progress.SECONDS_PER_SOURCE                 # about 22 min, not divided over the 4 GPUs
+    assert progress.first_guess([9], 4) == one_setup
+    assert progress.first_guess([9] * 8, 4) == 2 * one_setup     # 8 setups over 4 GPUs
+    monkeypatch.setattr(progress.time, "time", lambda: 1000.0 + 6 * 60)
+    assert "about 15 min left" in p.line()                      # 21.6 min guess, 6 min spent
+    monkeypatch.setattr(progress.time, "time", lambda: 1000.0 + 40 * 60)
+    assert "longer than the first guess" in p.line()
