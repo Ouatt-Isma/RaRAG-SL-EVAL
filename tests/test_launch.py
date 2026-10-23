@@ -88,3 +88,47 @@ def test_first_guess_counts_down_and_one_setup_runs_on_one_worker(monkeypatch):
     assert "about 15 min left" in p.line()                      # 21.6 min guess, 6 min spent
     monkeypatch.setattr(progress.time, "time", lambda: 1000.0 + 40 * 60)
     assert "longer than the first guess" in p.line()
+
+
+def test_gpus_that_allow_one_process_or_fail_cuda_are_left_out(tmp_path):
+    gpus = launch.parse_smi("0, RTX 4090, 24564, Default\n1, RTX 4090, 24564, Exclusive_Process\n2, RTX 4090, 24564, Default\n")
+    assert [g["mode"] for g in gpus] == ["Default", "Exclusive_Process", "Default"]
+    log = str(tmp_path / "run.log")
+    import sys
+    fake = tmp_path / "fake_python.py"   # stands in for the CUDA test: fails on GPU 2
+    fake.write_text("import os, sys\nif os.environ['CUDA_VISIBLE_DEVICES'] == '2':\n"
+                    "    sys.exit('torch.AcceleratorError: CUDA error: busy or unavailable')\n")
+    import subprocess
+    orig = subprocess.Popen
+
+    def popen(cmd, **kw):
+        return orig([sys.executable, str(fake)], **kw)
+    launch.subprocess.Popen = popen
+    try:
+        ok = launch.healthy(gpus, log)
+    finally:
+        launch.subprocess.Popen = orig
+    assert [g["index"] for g in ok] == [0]
+    text = open(log).read()
+    assert "GPU 1 left out: compute mode Exclusive_Process" in text and "GPU 2 left out: a small CUDA test failed" in text
+
+
+def test_a_crashed_worker_is_reported_while_the_others_go_on(tmp_path):
+    import subprocess
+    import sys
+    err = tmp_path / "run.w1.err"
+    err.write_text("Traceback ...\ntorch.AcceleratorError: CUDA error: busy or unavailable\n")
+    own, log = tmp_path / "run.w1.log", tmp_path / "run.log"
+    procs = [subprocess.Popen([sys.executable, "-c", "import time; time.sleep(1.5)"]),
+             subprocess.Popen([sys.executable, "-c", "raise SystemExit(1)"])]
+
+    class Quiet:
+        def done(self):
+            return [], {}
+
+        def line(self):
+            return "progress"
+    codes = launch.wait(procs, Quiet(), str(log), names={1: ("worker 1 on GPU 3", str(own), str(err))}, poll=0.2)
+    assert codes == [0, 1]
+    assert "worker 1 on GPU 3 stopped with an error (exit 1): torch.AcceleratorError" in log.read_text()
+    assert "stopped with an error" in own.read_text()     # what make status shows for that worker

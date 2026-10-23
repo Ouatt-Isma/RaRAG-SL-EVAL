@@ -22,11 +22,13 @@ def thesis_dir():
 def commit(path=None):
     """The thesis repository's commit, with "+dirty" when it has uncommitted changes."""
     path = path or thesis_dir()
+    # a repo copied to a server belongs to another user there, and git refuses to read it unless told it is safe
+    git = ["git", "-c", "safe.directory=*", "-C", path]
     try:
-        head = subprocess.run(["git", "-C", path, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-        dirty = subprocess.run(["git", "-C", path, "status", "--porcelain", "--untracked-files=no"],
+        head = subprocess.run(git + ["rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
+        dirty = subprocess.run(git + ["status", "--porcelain", "--untracked-files=no"],
                                capture_output=True, text=True).stdout.strip()
-        return head + ("+dirty" if dirty else "")
+        return head + ("+dirty" if dirty else "") if head else "unknown"
     except OSError:
         return "unknown"
 

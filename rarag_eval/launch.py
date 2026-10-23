@@ -34,13 +34,14 @@ DEFAULT_OLLAMA = "127.0.0.1:11434"
 
 
 def parse_smi(text, visible=None):
-    """nvidia-smi's "index, name, memory.total" CSV lines as [{index, name, mib}], only the GPUs that
-    CUDA_VISIBLE_DEVICES leaves visible when it lists indices."""
+    """nvidia-smi's "index, name, memory.total[, compute_mode]" CSV lines as [{index, name, mib, mode}], only the
+    GPUs that CUDA_VISIBLE_DEVICES leaves visible when it lists indices."""
     gpus = []
     for line in text.strip().splitlines():
         parts = [p.strip() for p in line.split(",")]
-        if len(parts) == 3 and parts[0].isdigit():
-            gpus.append({"index": int(parts[0]), "name": parts[1], "mib": int(float(parts[2]))})
+        if len(parts) in (3, 4) and parts[0].isdigit():
+            gpus.append({"index": int(parts[0]), "name": parts[1], "mib": int(float(parts[2])),
+                         "mode": parts[3] if len(parts) == 4 else "Default"})
     keep = [v.strip() for v in (visible or "").split(",") if v.strip()]
     if keep and all(v.isdigit() for v in keep):
         gpus = [g for g in gpus if str(g["index"]) in keep]
@@ -49,11 +50,42 @@ def parse_smi(text, visible=None):
 
 def detect():
     try:
-        out = subprocess.run(["nvidia-smi", "--query-gpu=index,name,memory.total", "--format=csv,noheader,nounits"],
-                             capture_output=True, text=True, timeout=30, check=True).stdout
+        out = subprocess.run(["nvidia-smi", "--query-gpu=index,name,memory.total,compute_mode",
+                              "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=30, check=True).stdout
     except (OSError, subprocess.SubprocessError):
         return []
     return parse_smi(out, os.environ.get("CUDA_VISIBLE_DEVICES"))
+
+
+CUDA_CHECK = "import torch; torch.ones(8, device='cuda').sum().item()"
+
+
+def healthy(gpus, logfile, python=sys.executable):
+    """The GPUs a worker can use. Each GPU holds two processes, its Ollama server and its worker, so one that
+    allows a single process (compute mode Exclusive_Process or Prohibited) is left out, and so is one where a
+    small CUDA test fails (a faulty or busy card), each with the reason in the log."""
+    ok = []
+    for g in gpus:
+        if g.get("mode", "Default") != "Default":
+            log(f"GPU {g['index']} left out: compute mode {g['mode']} allows only one process "
+                f"(nvidia-smi -i {g['index']} -c DEFAULT, as root, would allow it)", logfile)
+        else:
+            ok.append(g)
+    procs = [(g, subprocess.Popen([python, "-c", CUDA_CHECK], env={**os.environ, "CUDA_VISIBLE_DEVICES": str(g["index"])},
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)) for g in ok]
+    out = []
+    for g, p in procs:
+        try:
+            _, err = p.communicate(timeout=180)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            err, p.returncode = "no answer in 3 minutes", 1
+        if p.returncode == 0:
+            out.append(g)
+        else:
+            last = next((l for l in reversed(err.strip().splitlines()) if "Error" in l), err.strip()[-200:])
+            log(f"GPU {g['index']} left out: a small CUDA test failed there ({last.strip()})", logfile)
+    return out
 
 
 def plan(gpus, n_gpus=None, per_gpu=None, workers=None):
@@ -130,11 +162,26 @@ def stop(procs):
                     pass
 
 
-def wait(procs, progress, logfile, every=30 * 60):
-    """Until the workers end: the progress and time left each time a setup finishes, and every 30 minutes."""
-    last_n, last_t = 0, time.time()
-    while any(p.poll() is None for p in procs):
-        time.sleep(30)
+def wait(procs, progress, logfile, every=30 * 60, names=None, poll=30):
+    """Until the workers end: the progress and time left each time a setup finishes, and every 30 minutes; a worker
+    that stops with an error at once, in the run's log and in its own (its last line is what make status shows)."""
+    last_n, last_t, reported = 0, time.time(), set()
+    while [p.poll() for p in procs].count(None):   # every worker polled (any() would stop at the first running one)
+        time.sleep(poll)
+        for w, p in enumerate(procs):
+            if p.returncode not in (None, 0) and w not in reported:
+                reported.add(w)
+                name, own, err = (names or {}).get(w, (f"worker {w}", None, None))
+                last = ""
+                try:
+                    with open(err) as f:
+                        last = next((l.strip() for l in reversed(f.read().splitlines()) if "Error" in l), "")
+                except (OSError, TypeError):
+                    pass
+                msg = f"{name} stopped with an error (exit {p.returncode}){': ' + last if last else ''}; the others go on"
+                log(msg, logfile)
+                if own:
+                    log(msg, own)
         n = len(progress.done()[0])
         if n != last_n or time.time() - last_t >= every:
             log(progress.line(), logfile)
@@ -230,7 +277,7 @@ def main():
     signal.signal(signal.SIGTERM, interrupted)   # e.g. the tmux session closed: stop the workers too
     logfile = os.path.join(ROOT, "logs", "run.log")
     os.makedirs(os.path.dirname(logfile), exist_ok=True)
-    gpus = detect()
+    gpus = healthy(detect(), logfile)
     workers = plan(gpus, args.gpus, args.per_gpu, args.workers)
     offline = "--offline" in rest
     tag = os.environ.get("OLLAMA_MODEL") or cfg.get("ollama_model") or "(the model config's)"
@@ -273,6 +320,7 @@ def main():
             code = wait(procs, progress, logfile)[0]
             log(f"run done (exit code {code})", logfile)
             return
+        names = {}
         for w, (g, port) in enumerate(workers):
             env = env_for(w, g, port)
             wlog = os.path.join("logs", f"run.w{w}.log")
@@ -280,7 +328,8 @@ def main():
             procs.append(subprocess.Popen(run + ["--claim", "--log", wlog], cwd=ROOT, env=env, stdout=subprocess.DEVNULL,
                                           stderr=err, start_new_session=True))
             log(f"worker {w} on GPU {g['index'] if g else '-'}: started, log {wlog}", logfile)
-        codes = wait(procs, progress, logfile)
+            names[w] = (f"worker {w} on GPU {g['index'] if g else '-'}", os.path.join(ROOT, wlog), err.name)
+        codes = wait(procs, progress, logfile, names=names)
         log(f"workers done (exit codes {codes})", logfile)
     except KeyboardInterrupt:
         log("stopped: stopping the workers (saved analyses are kept; make run resumes)", logfile)
