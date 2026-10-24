@@ -78,7 +78,7 @@ test:
 	$(PY) -m pytest tests -q
 
 push:                  ## this repo's code to the server (HOST=… PORT=…), safe during a run; the thesis repo goes with its own server_backup.sh
-	rsync -az -e "ssh -p $(PORT)" --exclude .venv --exclude .git --exclude cache --exclude logs --exclude report/build \
+	rsync -az -e "ssh -p $(PORT)" --exclude .venv --exclude .git --exclude cache --exclude 'logs*' --exclude report/build \
 	  --exclude results ./ root@$(HOST):$(REMOTE)/rarag-sl-eval/
 	@# results only where the server has none yet (what is done is skipped there); never over the server's own
 	rsync -az --ignore-existing -e "ssh -p $(PORT)" results/ root@$(HOST):$(REMOTE)/rarag-sl-eval/results/
