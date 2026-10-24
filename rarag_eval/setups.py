@@ -7,7 +7,7 @@ import collections
 N_SOURCES = 9
 # the defense runs' five honest sources (FINDINGS F-46: reliabilities drawn once from Beta(3, 2))
 MIX5 = [("Source A", 0.75), ("Source B", 0.91), ("Source C", 0.526), ("Source D", 0.692), ("Source E", 0.618)]
-KINDS = ("unreliable", "attackers", "switch", "mix5", "experts")
+KINDS = ("unreliable", "attackers", "switch", "adaptive", "mix5", "experts")
 
 
 def _src(kind, rel, i, coverage):
@@ -39,6 +39,14 @@ def specs(setup, cfg, records=None):
         return ([_src("Reliable", 0.9, i, cov) for i in range(N_SOURCES - k)],
                 [{"name": f"Attacker {i + 1}", "behaviour": "onoff", "switch_at": at, "est_coverage": cov,
                   "test_coverage": cov} for i in range(k)])
+    if kind == "adaptive":         # attackers who betray a few questions at a time, to stay under the forgetting
+        k = int(setup.get("k", 3))   # rate: thinly ("rate": a random share of the test) or in bursts ("burst":
+        honest = [_src("Reliable", 0.9, i, cov) for i in range(N_SOURCES - k)]   # [attack, pause] questions)
+        if "burst" in setup:
+            on, pause = (int(x) for x in setup["burst"])
+            return honest, [{"name": f"Attacker {i + 1}", "behaviour": "onoff", "switch_at": cfg["n_est"],
+                             "periodic": [on, pause], "est_coverage": cov, "test_coverage": cov} for i in range(k)]
+        return honest, [{"name": f"Attacker {i + 1}", "est_coverage": cov, "test_coverage": cov} for i in range(k)]
     if kind == "mix5":             # five honest sources between 0.53 and 0.91
         return [{"name": n, "reliability": r, "coverage": cov} for n, r in MIX5], []
     if kind == "experts":          # one expert per frequent domain, plus generalists (F-53)
@@ -53,10 +61,18 @@ def specs(setup, cfg, records=None):
     raise ValueError(f"unknown setup kind {kind!r} (one of {', '.join(KINDS)})")
 
 
+def target_fraction(setup, cfg):
+    """The share of test questions attackers may attack: the config's (half), an adaptive attacker's rate, or every
+    question for one attacking in bursts (its windows decide which it attacks)."""
+    if setup["kind"] == "adaptive":
+        return 1.0 if "burst" in setup else float(setup["rate"])
+    return cfg["target_fraction"]
+
+
 def scenario(th, dataset, seed, setup, cfg):
     """The lab scenario of a setup on a dataset with a seed (not built yet)."""
     records = th.lab.load_dataset(dataset)
     honest, advs = specs(setup, cfg, records)
     return th.lab.Scenario([{"file": dataset, "n_est": cfg["n_est"], "n_test": cfg["n_test"]}], honest, advs,
-                           cfg["kappa"], top_k=cfg["top_k"], seed=int(seed), target_fraction=cfg["target_fraction"],
+                           cfg["kappa"], top_k=cfg["top_k"], seed=int(seed), target_fraction=target_fraction(setup, cfg),
                            filtering_threshold=cfg["filtering_threshold"], model=th.model)

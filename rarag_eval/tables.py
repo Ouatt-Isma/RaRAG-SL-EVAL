@@ -20,11 +20,19 @@ ROBUST_ROWS = [("plain", "rarag"), ("plain", "rarag_online"), ("aged", "rarag_wi
                ("plain", "sl_online"), ("aged", "sl_online"), ("window", "sl_online"), ("plain", "equal")]
 SETUP_LABEL = {"attackers_k1": "1 of 9", "attackers_k2": "2 of 9", "attackers_k3": "3 of 9", "attackers_k4": "4 of 9",
                "switch": "switch", "unreliable_k3": "3 of 9", "unreliable_k7": "7 of 9", "mix5": "5 honest",
-               "experts": "experts"}
+               "experts": "experts", "adaptive_r10": "10\\%", "adaptive_r20": "20\\%", "adaptive_r30": "30\\%",
+               "burst_r20": "20\\%, bursts"}
+ADAPTIVE = ["adaptive_r10", "adaptive_r20", "adaptive_r30", "attackers_k3", "burst_r20"]   # by attack rate
 SETUP_LONG = {"unreliable_k3": "3 unreliable of 9", "unreliable_k7": "7 unreliable of 9", "mix5": "5 honest sources",
               "attackers_k1": "1 attacker of 9", "attackers_k2": "2 attackers of 9", "attackers_k3": "3 attackers of 9",
-              "attackers_k4": "4 attackers of 9", "switch": "3 attackers, late switch", "experts": "domain experts"}
-PLACEMENT_LABEL = {"global": "No domains", "domain": "LLM's labels", "centroid": "Nearest centroid", "soft": "Soft weights"}
+              "attackers_k4": "4 attackers of 9", "switch": "3 attackers, late switch", "experts": "domain experts",
+              "adaptive_r10": "3 attackers, 10\\% of questions", "adaptive_r20": "3 attackers, 20\\% of questions",
+              "adaptive_r30": "3 attackers, 30\\% of questions", "burst_r20": "3 attackers, bursts (20\\%)"}
+# A: the labels the experts are built from (placing by them is an oracle); B: an independent labeller's (F-58)
+PLACEMENT_LABEL = {"global": "No domains", "domain": "Labels A (oracle)", "domain_b": "Labels B",
+                   "centroid_b": "Nearest centroid (B)", "soft_b": "Soft weights (B)",
+                   "centroid": "Nearest centroid (A)", "soft": "Soft weights (A)"}
+FAIR = ["global", "domain", "domain_b", "centroid_b", "soft_b"]   # what the figure shows: the fair test and its bounds
 
 
 def esc(text):
@@ -55,11 +63,15 @@ def cell(values, digits=1):
     return f"{100 * statistics.mean(xs):.{digits}f}\\,{{\\scriptsize$\\pm${100 * statistics.stdev(xs):.{digits}f}}}"
 
 
-def wrap(tabular, caption, label, small=True, wide=False):
-    env = "table*" if wide else "table"
+def wrap(tabular, caption, label, small=True, wide=False, landscape=False):
+    """landscape: on a page of its own turned sideways (\\usepackage{pdflscape}), for a table too wide and tall for
+    a portrait page."""
+    env = "table*" if wide and not landscape else "table"
     # no placement option: a paper sets its own; the results document keeps each table where it is input
-    return (f"\\begin{{{env}}}\n\\centering\n" + ("\\small\n" if small else "") + tabular
+    size = "\\footnotesize\\renewcommand{\\arraystretch}{0.85}\n" if landscape else "\\small\n" if small else ""
+    body = (f"\\begin{{{env}}}\n\\centering\n" + size + tabular
             + f"\\caption{{{caption}}}\n\\label{{{label}}}\n\\end{{{env}}}\n")
+    return f"% needs \\usepackage{{pdflscape}}\n\\begin{{landscape}}\n{body}\\end{{landscape}}\n" if landscape else body
 
 
 def write(name, text):
@@ -72,14 +84,21 @@ def values(rows, **where):
     return [r for r in rows if all(r.get(k) == v for k, v in where.items())]
 
 
+def with_holds(agg):
+    """A dataset's mean difference, and in small type how many of its seeds go the expected way."""
+    if not agg["n"]:
+        return "--"
+    return f"{pts(agg['mean'])}\\,{{\\scriptsize({agg['holds']}/{agg['n']})}}"
+
+
 def claims_table(summary, datasets):
     head = " & ".join(dlabel(d) for d in datasets)
-    lines = [r"\begin{tabular}{@{}l p{6.2cm} " + "r" * len(datasets) + r" r c@{}}", r"\toprule",
+    lines = [r"\begin{tabular}{@{}l p{12.4cm} " + "r" * len(datasets) + r" r c@{}}", r"\toprule",
              rf"\# & Result (method vs baseline) & {head} & All, 95\% CI & Holds \\", r"\midrule"]
     for s in summary:
         c = s["claim"]
         unit = "" if c.what != "overrate" else " (score)"
-        per = " & ".join(pts(s["per_dataset"][d]["mean"]) for d in datasets)
+        per = " & ".join(with_holds(s["per_dataset"][d]) for d in datasets)
         a = s["all"]
         ci = "" if a["lo"] is None else f" [{pts(a['lo'])}, {pts(a['hi'])}]"
         holds = f"{a['holds']}/{a['n']}" if a["n"] else "--"
@@ -89,9 +108,10 @@ def claims_table(summary, datasets):
     lines += [r"\bottomrule", r"\end{tabular}", ""]
     caption = (r"The first evaluation series' results across datasets and seeds. Each cell is the method's "
                r"difference from the baseline in percentage points (accuracy or attacks that succeed), averaged over "
-               r"seeds; ``All'' averages every dataset and seed, with a 95\% $t$ interval when there are several; "
-               r"``Holds'' counts the runs where the difference goes the expected way (for a tie: within one point).")
-    write("claims", wrap("\n".join(lines), caption, "tab:claims", wide=True))
+               r"seeds, and in brackets how many of that dataset's seeds go the expected way; ``All'' averages every "
+               r"dataset and seed, with a 95\% $t$ interval when there are several; ``Holds'' counts the runs, over "
+               r"every dataset and seed, where the difference goes the expected way (for a tie: within one point).")
+    write("claims", wrap("\n".join(lines), caption, "tab:claims", landscape=True))
 
 
 def robustness_tables(rows, datasets, setups, metric, name, caption):
@@ -118,6 +138,8 @@ def robustness_tables(rows, datasets, setups, metric, name, caption):
 def domains_table(rows, datasets):
     body = []
     for p, label in PLACEMENT_LABEL.items():
+        if not values(rows, setup="experts", analysis=f"dom_{p}_wfull"):
+            continue
         cells = []
         for d in datasets:
             sl = cell([r["accuracy"] for r in values(rows, dataset=d, setup="experts", analysis=f"dom_{p}_wfull", row="sl_online")])
@@ -129,9 +151,14 @@ def domains_table(rows, datasets):
     sub = " & ".join("SL & RA-RAG" for _ in datasets)
     tab = "\n".join([r"\begin{tabular}{@{}l" + "rr" * len(datasets) + "@{}}", r"\toprule", rf"Domain of a question & {head} \\",
                      rf" & {sub} \\", r"\midrule", *body, r"\bottomrule", r"\end{tabular}", ""])
+    agree = [r.get("labeller_agreement") for r in values(rows, setup="experts", analysis="dom_domain_b_wfull", row="sl_online")]
+    agree = [a for a in agree if a is not None]
+    noise = (f" Labeller B agrees with A on {100 * sum(agree) / len(agree):.0f}\\% of the test questions." if agree else "")
     write("domains", wrap(tab, r"Domain experts (right 90\% of the time in their domain, 30\% elsewhere): accuracy with "
                                r"trust learned per domain online, by how each question is placed among the domains, full "
-                               r"warm-up. RA-RAG's estimator runs per domain on each question's top domain.", "tab:domains"))
+                               r"warm-up. A: the labels the experts are built from, so placing by them is an oracle; B: an "
+                               r"independent labeller's, the fair test. RA-RAG's estimator runs per domain on each question's "
+                               r"top domain." + noise, "tab:domains"))
 
 
 def answering_table(rows, setups):
@@ -148,8 +175,9 @@ def answering_table(rows, setups):
     if not body:
         body = [r"\multicolumn{8}{l}{No results yet.} \\"]
     tab = "\n".join([r"\begin{tabular}{@{}lrrrrrrr@{}}", r"\toprule",
-                     r"Setup & Answers & Right & RA-RAG, same cov. & Conflict right & Unknown wrong & \multicolumn{2}{c}{Attacks succeed} \\",
-                     r" & & & & & & SL & RA-RAG \\", r"\midrule", *body, r"\bottomrule", r"\end{tabular}", ""])
+                     r" & & & RA-RAG, & Conflict & Unknown & \multicolumn{2}{c}{Attacks succeed} \\",
+                     r"Setup & Answers & Right & same cov. & right & wrong & SL & RA-RAG \\", r"\midrule", *body,
+                     r"\bottomrule", r"\end{tabular}", ""])
     write("answering", wrap(tab, r"SL's own answering (answer, \emph{unknown} or \emph{conflict}) with its online trust and "
                                  r"aging: share of questions answered, accuracy on those, RA-RAG's accuracy on its most "
                                  r"confident questions at the same coverage and trust, conflicts whose two answers include "

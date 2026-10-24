@@ -85,6 +85,15 @@ class LogJob:
             log(f"  {self.name}: {text}{pct}", self.path)
 
 
+def labelled_b(dataset):
+    """The fair placements need the independent labeller's labels (make labels)."""
+    from .thesis import thesis_dir
+    try:
+        return os.path.exists(os.path.join(thesis_dir(), "dataset", f"{store.dataset_name(dataset)}.domains_b.json"))
+    except SystemExit:
+        return False
+
+
 def no_empty_answers(sc, name):
     """Stop a setup computed from failed LLM requests (empty answers, read as "I don't know") before anything of it
     is saved; its empty answers are dropped from the cache, so the next run asks those questions again."""
@@ -115,11 +124,16 @@ def main():
         os.environ.setdefault("OLLAMA_MODEL", cfg["ollama_model"])
     os.makedirs(os.path.dirname(logfile), exist_ok=True)
 
-    todo = []
+    todo, unlabelled = [], set()
     for dataset, seed, setup in units(cfg, only):
         missing = [a for a in analyses.plan(setup, cfg["n_est"]) if not store.exists(dataset, seed, setup["id"], a[0])]
+        if any(a[2].get("labels") == "domain_b" for a in missing) and not labelled_b(dataset):
+            missing = [a for a in missing if a[2].get("labels") != "domain_b"]   # they wait for make labels
+            unlabelled.add(store.dataset_name(dataset))
         if missing:
             todo.append((dataset, seed, setup, missing))
+    if unlabelled:
+        log(f"labeller B's labels missing for {', '.join(sorted(unlabelled))}: the fair placements wait (make labels)", logfile)
     log(f"{args.config}: {len(todo)} setups with analyses to run", logfile)
     if args.dry_run:
         for dataset, seed, setup, missing in todo:

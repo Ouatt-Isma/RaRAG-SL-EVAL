@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from .tables import DATASET_LABEL, PLACEMENT_LABEL, ROW_LABEL, values  # noqa: E402
+from .tables import DATASET_LABEL, FAIR, PLACEMENT_LABEL, ROW_LABEL, values  # noqa: E402
 from .thesis import ROOT  # noqa: E402
 
 FIGURES = os.path.join(ROOT, "paper", "figures")
@@ -46,7 +46,7 @@ def mean_spread(xs):
     return statistics.mean(xs), min(xs), max(xs)
 
 
-def by_k(rows, datasets, setups, ks, metric, name, ylabel):
+def by_k(rows, datasets, setups, ks, metric, name, ylabel, xlabel="bad sources among 9"):
     """Accuracy (or attacks that succeed) against the number of bad sources, one panel per dataset; the line
     is the mean over seeds, the band the range."""
     present = [d for d in datasets if any(values(rows, dataset=d, setup=s) for s in setups)]
@@ -65,7 +65,7 @@ def by_k(rows, datasets, setups, ks, metric, name, ylabel):
                 if any(lo != hi for lo, hi in zip(los, his)):
                     ax.fill_between(xs, los, his, color=color, alpha=0.12, lw=0)
         ax.set_title(DATASET_LABEL.get(d, d))
-        ax.set_xlabel("bad sources among 9")
+        ax.set_xlabel(xlabel)
         ax.set_xticks(ks)
         ax.grid(axis="y", color="#e5e7eb", lw=0.6)
     axes[0][0].set_ylabel(ylabel)
@@ -107,16 +107,17 @@ def domains(rows, datasets):
     present = [d for d in datasets if values(rows, dataset=d, setup="experts")]
     if not present:
         return empty("domains")
-    fig, ax = plt.subplots(figsize=(3.4, 2.2))
-    width = 0.8 / len(PLACEMENT_LABEL)
-    colors = ["#9ca3af", "#1d4ed8", "#93c5fd", "#60a5fa"]
-    for j, (p, label) in enumerate(PLACEMENT_LABEL.items()):
+    fig, ax = plt.subplots(figsize=(3.6, 2.3))
+    shown = [(p, PLACEMENT_LABEL[p]) for p in FAIR if values(rows, setup="experts", analysis=f"dom_{p}_wfull")]
+    width = 0.8 / len(shown)
+    colors = ["#9ca3af", "#111827", "#1d4ed8", "#93c5fd", "#60a5fa"]
+    for j, (p, label) in enumerate(shown):
         ms, errs = [], []
         for d in present:
             m, lo, hi = mean_spread([r["accuracy"] for r in values(rows, dataset=d, setup="experts", analysis=f"dom_{p}_wfull", row="sl_online")])
             ms.append(100 * m if m is not None else 0)
             errs.append([100 * (m - lo) if m is not None else 0, 100 * (hi - m) if m is not None else 0])
-        xs = [i + (j - (len(PLACEMENT_LABEL) - 1) / 2) * width for i in range(len(present))]
+        xs = [i + (j - (len(shown) - 1) / 2) * width for i in range(len(present))]
         ax.bar(xs, ms, width * 0.92, color=colors[j], label=label, yerr=list(zip(*errs)), capsize=1.5, error_kw={"lw": 0.6})
     ax.set_xticks(range(len(present)))
     ax.set_xticklabels([DATASET_LABEL.get(d, d) for d in present])

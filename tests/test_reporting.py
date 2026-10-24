@@ -84,7 +84,8 @@ def test_collect_claims_tables_and_figures(results, tmp_path, monkeypatch):
                              "attackers_accuracy", "cap")
     tables.answering_table(rows, ["attackers_k2", "attackers_k3"])
     text = open(os.path.join(tables.TABLES, "claims.tex")).read()
-    assert r"\begin{table*}" in text and "TriviaQA" in text and "Holds" in text
+    assert r"\begin{landscape}" in text and "TriviaQA" in text and "Holds" in text
+    assert r"\scriptsize(" in text                       # each dataset's seeds that go the expected way
     rob = open(os.path.join(tables.TABLES, "attackers_accuracy.tex")).read()
     assert r"\scriptsize$\pm$" in rob                     # two seeds: mean and spread
     plots.claims_forest(summary, ["NQ_paper", "TQA_paper"])

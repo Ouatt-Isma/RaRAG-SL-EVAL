@@ -69,6 +69,23 @@ CLAIMS = [
           ("dom_centroid_wfull", "rarag_topic_online", "RA-RAG per domain, online"), ("dom_centroid_wfull", "sl_online", "SL per domain"), +1),
     Claim("15", "SL's own answering protects out-of-date trust (frozen, 3 attackers)", ["attackers_k3"], "attack",
           ("aged", "sl_offline", "RA-RAG's answering"), ("answer_aged", "sl_offline", "SL's own answering"), -1),
+    # the fair domain test (F-58): placement sees only an independent labeller's labels (B), never the ones the
+    # experts are built from (A)
+    Claim("16a", "Fair test: trust per domain from an independent labeller's labels", ["experts"], "acc",
+          ("dom_global_wfull", "sl_online", "SL, one score"), ("dom_domain_b_wfull", "sl_online", "SL per domain, labeller B"), +1),
+    Claim("16b", "Fair test: soft weights against the labeller's own labels", ["experts"], "acc",
+          ("dom_domain_b_wfull", "sl_online", "SL, labeller B's labels"), ("dom_soft_b_wfull", "sl_online", "SL, soft weights from B"), +1),
+    Claim("16c", "The cost of label noise: the experts' own labels against labeller B's", ["experts"], "acc",
+          ("dom_domain_b_wfull", "sl_online", "SL, labeller B"), ("dom_domain_wfull", "sl_online", "SL, the experts' labels"), +1),
+    Claim("16d", "Fair test: SL beats RA-RAG per domain (labeller B)", ["experts"], "acc",
+          ("dom_domain_b_wfull", "rarag_topic_online", "RA-RAG per domain, online"), ("dom_domain_b_wfull", "sl_online", "SL per domain"), +1),
+    # adaptive attackers: a few questions at a time, to stay under the forgetting rate
+    Claim("17a", "Thin attacks (10% of questions): aging still beats frozen trust", ["adaptive_r10"], "attack",
+          ("plain", "rarag", "RA-RAG frozen"), ("aged", "sl_online", "SL with aging"), -1),
+    Claim("17b", "Attacks in bursts (20%): aging still beats frozen trust", ["burst_r20"], "attack",
+          ("plain", "rarag", "RA-RAG frozen"), ("aged", "sl_online", "SL with aging"), -1),
+    Claim("17c", "Thin attacks: SL's own answering protects out-of-date trust", ["adaptive_r10"], "attack",
+          ("aged", "sl_offline", "RA-RAG's answering"), ("answer_aged", "sl_offline", "SL's own answering"), -1),
 ]
 
 

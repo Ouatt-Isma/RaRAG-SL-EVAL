@@ -24,6 +24,7 @@ PLAN = {    # setup kind -> the fixed analyses it gets
     "unreliable": ["plain", "aged", "window", "answer_aged"],
     "attackers": ["plain", "aged", "window", "detector", "answer_aged"],
     "switch": ["plain", "aged", "window", "detector", "answer_aged"],
+    "adaptive": ["plain", "aged", "window", "detector", "answer_aged"],
     "mix5": ["plain", "aged", "window", "answer_aged"],
     "experts": ["plain", "answer_aged"],
 }
@@ -32,6 +33,11 @@ PLACEMENTS = {  # how a question is placed among domains (F-53, F-56)
     "domain": {"scope": True, "scope_by": "domain"},
     "centroid": {"scope": True, "scope_by": "centroid"},
     "soft": {"scope": True, "scope_by": "soft", "soft_temp": 0.02},
+    # the fair test (F-58): the experts are built from the labels above (A), so placing by them is an oracle; these
+    # place by an independent labeller's labels (B) only, for the label itself and for the centroids
+    "domain_b": {"scope": True, "scope_by": "domain", "labels": "domain_b"},
+    "centroid_b": {"scope": True, "scope_by": "centroid", "labels": "domain_b"},
+    "soft_b": {"scope": True, "scope_by": "soft", "soft_temp": 0.02, "labels": "domain_b"},
 }
 CODE = {"correct": "c", "wrong": "w", "attacked": "a", "abstained": "x"}
 
@@ -95,6 +101,8 @@ def swap(th, sc, settings, kappa, job=None):
     if settings.get("scope"):   # how often the question's top domain is the LLM's label
         keys = [th.sl_minimal.topic_key(run._scope_topic(i)) for i in idxs]
         extra["label_agreement"] = sum(k == sc.data[i].get("domain") for k, i in zip(keys, idxs)) / len(idxs)
+        if settings.get("labels") == "domain_b":   # how often the two labellers agree: the noise every placement faces
+            extra["labeller_agreement"] = sum(sc.data[i].get("domain_b") == sc.data[i].get("domain") for i in idxs) / len(idxs)
     if run.subset:
         extra["warmup_idx"] = run.subset["idx"]
     return {"questions": _questions(sc, idxs), "sources": _sources(sc, res), "rows": rows, "extra": extra}

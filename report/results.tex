@@ -8,6 +8,7 @@
 \usepackage{graphicx}
 \usepackage{array}
 \usepackage{float}
+\usepackage{pdflscape}
 \usepackage{caption}
 \usepackage[hidelinks]{hyperref}
 \graphicspath{{../paper/figures/}}
@@ -34,15 +35,15 @@ Each result of the first evaluation series is a comparison between a baseline an
 questions. Table~\ref{tab:claims} gives the difference on every dataset and over all runs, Figure~\ref{fig:claims}
 the same with its interval.
 
-\input{../paper/tables/claims}
-
 \begin{figure}[H]
 \centering
-\includegraphics[width=\linewidth]{claims_forest}
+\includegraphics[width=\linewidth,height=0.52\textheight,keepaspectratio]{claims_forest}
 \caption{Method minus baseline for each result (percentage points): per dataset (markers) and over every dataset and
 seed (bar: mean; line: 95\% interval).}
 \label{fig:claims}
 \end{figure}
+
+\input{../paper/tables/claims}
 
 \section{Attacks and forgetting}
 Coordinated attackers answer honestly through the warm-up, then all give the same wrong answer on half the test
@@ -60,6 +61,24 @@ does not. Tables~\ref{tab:attackers_accuracy} and~\ref{tab:attackers_attack}, Fi
 seeds, band: range over seeds.}
 \label{fig:attackers}
 \end{figure}
+
+\section{Adaptive attackers}
+Attackers who betray a few questions at a time try to stay under the forgetting rate: 3 of 9 attack only a share of
+the test questions, spread thinly or in bursts of 5 attacked questions followed by 20 honest ones. The 50\% column is
+the build-then-betray setup above.
+
+\IfFileExists{../paper/tables/adaptive_attack.tex}{Tables~\ref{tab:adaptive_attack} and~\ref{tab:adaptive_accuracy},
+Figure~\ref{fig:adaptive}.
+
+\input{../paper/tables/adaptive_attack}
+\input{../paper/tables/adaptive_accuracy}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{adaptive_attack}
+\caption{Attacks that succeed against the share of test questions attacked (thin attacks; mean over seeds, band: range).}
+\label{fig:adaptive}
+\end{figure}}{\noindent\emph{No results yet.}}
 
 \section{Unreliable sources}
 Unreliable sources are right only 10\% of the time and disagree with each other. Learning any trust removes most of
@@ -83,15 +102,18 @@ from a prior and moves with the evidence (Table~\ref{tab:warmup}, Figure~\ref{fi
 \section{Domain experts}
 Each expert is right 90\% of the time in its own domain and 30\% elsewhere; two generalists are right 60\% of the
 time everywhere. The system is never told who is an expert. Trust is learned per domain, with each question placed
-among the domains by the LLM's label, by the nearest domain centroid of its embedding, or by soft weights over the
-domains (Table~\ref{tab:domains}, Figure~\ref{fig:domains}).
+among the domains by a label, by the nearest domain centroid of its embedding, or by soft weights over the domains.
+The experts are built from one LLM's labels (A), so placing questions by those labels is an oracle. The fair test
+places them by an independent labeller's labels only (B, another model family; centroids from B's warm-up labels too),
+with A as the upper bound and one score per source as the lower (Table~\ref{tab:domains}, Figure~\ref{fig:domains}).
 
 \input{../paper/tables/domains}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.55\linewidth]{domains}
-\caption{SL's accuracy with trust per domain, by how questions are placed among domains (mean over seeds, bar: range).}
+\caption{SL's accuracy with trust per domain, by how questions are placed among domains: one score, the oracle labels
+(A), and the fair test from labeller B (mean over seeds, bar: range).}
 \label{fig:domains}
 \end{figure}
 

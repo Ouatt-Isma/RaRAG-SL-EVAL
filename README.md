@@ -32,7 +32,19 @@ one round of LLM answers) per dataset and seed; its **analyses** all reuse those
 | `mix5` | 5 honest sources, 0.53–0.91 | same + warm-up subsets of 5/10/20 questions × 10 draws |
 | `attackers_k1…k4` | k build-then-betray attackers among 9 | plain, aged, window, detector, SL's own answering |
 | `switch` | 3 attackers honest until halfway through the test | same |
-| `experts` | 5 domain experts (90% in their domain, 30% elsewhere) + 2 generalists | plain, SL's own answering + trust per domain placed 4 ways (none, LLM label, nearest centroid, soft weights) × warm-up 15/60/full |
+| `experts` | 5 domain experts (90% in their domain, 30% elsewhere) + 2 generalists | plain, SL's own answering + trust per domain placed 7 ways × warm-up 15/60/full (below) |
+| `adaptive_r10/r20/r30` | 3 attackers who attack only 10/20/30% of the test questions, spread thinly | as `attackers_k3` (the same at 50%) |
+| `burst_r20` | 3 attackers who attack 5 questions, then stay honest for 20 (20% in bursts) | the same |
+
+**The fair domain test.** The experts are built from one LLM's domain labels (A), so placing questions by those labels
+is an oracle: it cannot misplace a question. The fair placements read only an independent labeller's labels (B:
+another model family, `labeller_b` in the config, same categories and prompt; `make labels`): the label itself
+(`domain_b`), the nearest centroid and soft weights built from B's warm-up labels (`centroid_b`, `soft_b`). A is the
+upper bound and one score per source the lower; the report gives how often B agrees with A. Until `make labels` has
+run, `make start` runs everything else and says the fair placements are waiting.
+
+**Adaptive attackers.** Attackers who betray a few questions at a time try to stay under the forgetting rate. The
+report adds a table and a figure of attacks that succeed against the share of questions attacked (10–50%, and bursts).
 
 Analyses (`rarag_eval/analyses.py`): **swap** = RA-RAG's answering (κ = 4) with each reliability in turn (RA-RAG
 frozen/online/window, SL frozen/online, oracle, equal weights); **compare** = SL's own answering (answer, unknown,
@@ -74,6 +86,7 @@ cd ../RaRAG-SL-EVAL
 sudo apt install -y tmux               # if it is not there yet
 make setup                             # once: the reporting environment
 make gpus                              # check: the GPUs found and the workers it will start
+make labels                            # the fair domain test's second labeller (another model): a few minutes
 make start ONLY="dataset=TQA_paper seed=0 setup=attackers_k2"   # a first check: one setup, about 20 min
 make status                            # when it says all done: the LLM, AlignScore and the analyses work here
 
@@ -149,6 +162,7 @@ bash scripts/setup_ollama.sh        # Ollama and Llama 3 8B fp16 (16 GB download
 # 3. on the server: run, as in case 1 (vast images have tmux)
 cd /workspace/rarag-sl-eval
 make setup && make gpus
+make labels                         # the fair domain test's second labeller: a few minutes
 make start ONLY="dataset=TQA_paper seed=0 setup=attackers_k2"   # a first check: one setup, about 20 min
 make status                         # when it says all done, run the rest of the grid:
 make start                          # the confirmation grid (configs/confirm.yaml)

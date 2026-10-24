@@ -8,7 +8,7 @@ import os
 import time
 
 from . import analyses, store
-from .run import load_config, units
+from .run import labelled_b, load_config, units
 from .thesis import ROOT
 
 STATE = os.path.join(ROOT, "logs", "progress.json")
@@ -25,6 +25,8 @@ def remaining(cfg, only):
     left = {}
     for dataset, seed, setup in units(cfg, only):
         todo = analyses.plan(setup, cfg["n_est"])
+        if not labelled_b(dataset):   # the fair placements wait for make labels, as in rarag_eval.run
+            todo = [a for a in todo if a[2].get("labels") != "domain_b"]
         saved = sum(store.exists(dataset, seed, setup["id"], a[0]) for a in todo)
         if saved < len(todo):
             left[f"{store.dataset_name(dataset)} seed {seed} {setup['id']}"] = 1 if saved else sources(setup)

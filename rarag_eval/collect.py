@@ -14,7 +14,7 @@ SAME_TRUST = {"sl_online": "sl_online", "sl_offline": "sl_offline", "sl_rarag": 
               "sl_rarag_window": "rarag_window"}
 FIELDS = ["dataset", "seed", "setup", "analysis", "kind", "row", "n", "n_target", "accuracy", "attack", "coverage",
           "unknown", "conflict", "answered_accuracy", "conflict_gold", "unknown_would_be_wrong", "rarag_same_coverage",
-          "label_agreement"]
+          "label_agreement", "labeller_agreement"]
 
 
 def share(codes, symbols):
@@ -50,7 +50,8 @@ def rows_of(dataset, seed, setup, analysis, rec, index):
     out = []
     for name, r in rec["rows"].items():
         base = {"dataset": dataset, "seed": seed, "setup": setup, "analysis": analysis, "kind": meta["kind"], "row": name,
-                "n": len(targets), "n_target": n_target, "label_agreement": rec.get("extra", {}).get("label_agreement")}
+                "n": len(targets), "n_target": n_target, "label_agreement": rec.get("extra", {}).get("label_agreement"),
+                "labeller_agreement": rec.get("extra", {}).get("labeller_agreement")}
         if meta["kind"] == "swap":
             codes = r["fair"]
             base.update(accuracy=share(codes, "c"), coverage=1 - share(codes, "x"),

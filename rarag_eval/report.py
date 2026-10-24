@@ -23,7 +23,7 @@ def write_generated(cfg, index, rows, summary):
     out = os.path.join(REPORT, "generated")
     os.makedirs(out, exist_ok=True)
     units = sorted({(d, s) for d, s, _, _ in index})
-    commits = sorted({rec["meta"].get("thesis_commit", "?") for rec in index.values()})
+    commits = sorted({rec["meta"].get("thesis_commit") or "not recorded" for rec in index.values()})
     tags = sorted({rec["meta"].get("llm_tag") or "tag not recorded" for rec in index.values()})
     if len(tags) > 1:
         print(f"WARNING: these results come from different LLMs ({', '.join(tags)}): keep each in its own results folder")
@@ -35,6 +35,10 @@ def write_generated(cfg, index, rows, summary):
         f.write(f"\\newcommand{{\\seeds}}{{{', '.join(str(s) for s in sorted({u[1] for u in units})) or 'none yet'}}}\n")
         f.write(f"\\newcommand{{\\thesiscommit}}{{{tables.esc(', '.join(commits)) or '--'}}}\n")
         f.write(f"\\newcommand{{\\model}}{{{tables.esc(cfg['model'] + ' (' + ', '.join(tags) + ')' if tags else cfg['model'])}}}\n")
+
+
+def values_any(rows, setup):
+    return any(r["setup"] == setup for r in rows)
 
 
 def build(cfg, pdf=True):
@@ -60,6 +64,14 @@ def build(cfg, pdf=True):
                              r"The same setups: share of attacked questions answered with the attackers' answer, in percent.")
     tables.robustness_tables(rows, datasets, ["unreliable_k3", "unreliable_k7"], "accuracy", "unreliable",
                              r"Static unreliable sources (right 10\% of the time) among 9: accuracy in percent.")
+    adaptive = [s for s in tables.ADAPTIVE if values_any(rows, s)]
+    if len(adaptive) > 1:
+        tables.robustness_tables(rows, datasets, adaptive, "attack", "adaptive_attack",
+                                 r"Adaptive attackers: 3 of 9 attack only a share of the test questions, spread thinly "
+                                 r"(10--50\%) or in bursts (5 attacked, then 20 honest). Share of attacked questions answered "
+                                 r"with the attackers' answer, in percent.")
+        tables.robustness_tables(rows, datasets, adaptive, "accuracy", "adaptive_accuracy",
+                                 r"The same setups: accuracy in percent.")
     tables.domains_table(rows, datasets)
     tables.answering_table(rows, [s["id"] for s in cfg["setups"]])
     tables.warmup_table(rows, datasets, sizes)
@@ -69,6 +81,11 @@ def build(cfg, pdf=True):
     plots.by_k(rows, datasets, attackers, [1, 2, 3, 4], "accuracy", "attackers_accuracy", "accuracy (%)")
     plots.by_k(rows, datasets, attackers, [1, 2, 3, 4], "attack", "attackers_attack", "attacks that succeed (%)")
     plots.domains(rows, datasets)
+    thin = [s for s in ["adaptive_r10", "adaptive_r20", "adaptive_r30", "attackers_k3"] if values_any(rows, s)]
+    if len(thin) > 1:
+        rate = {"adaptive_r10": 10, "adaptive_r20": 20, "adaptive_r30": 30, "attackers_k3": 50}
+        plots.by_k(rows, datasets, thin, [rate[s] for s in thin], "attack", "adaptive_attack",
+                   "attacks that succeed (%)", xlabel="share of test questions attacked (%)")
     plots.warmup(rows, datasets, sizes)
     write_generated(cfg, index, rows, summary)
 

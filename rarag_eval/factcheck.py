@@ -35,9 +35,9 @@ def building():
         return False
 
 
-def logged(cmd, cwd, env):
-    """Run cmd, its output both here and in logs/claims.log."""
-    with open(LOG, "a") as out:
+def logged(cmd, cwd, env, path=LOG):
+    """Run cmd, its output both here and in a log (logs/claims.log by default)."""
+    with open(path, "a") as out:
         proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         for line in proc.stdout:
             print(line, end="", flush=True)

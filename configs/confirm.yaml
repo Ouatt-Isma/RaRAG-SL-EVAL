@@ -1,7 +1,8 @@
 # The confirmation grid: the first evaluation series' setups on every dataset and seed.
 # Each setup is one lab scenario (one round of LLM answers) per dataset and seed; its analyses reuse those answers.
 model: ollama_llama3_8b
-ollama_model: llama3:8b-instruct-fp16   # the tag the earlier server runs used (16-bit, as the paper; FINDINGS F-27)
+ollama_model: llama3:8b-instruct-fp16
+labeller_b: qwen2.5:7b-instruct   # the independent domain labeller (make labels): another model family   # the tag the earlier server runs used (16-bit, as the paper; FINDINGS F-27)
 n_est: 200            # warm-up questions
 n_test: 600           # test questions
 kappa: 4              # sources RA-RAG's answering asks (the paper's)
@@ -32,4 +33,12 @@ setups:
     kind: experts                                    # one expert per frequent domain + 2 generalists
     expert: 0.9
     outside: 0.3
-    domains: {placements: [global, domain, centroid, soft], sizes: [15, 60], draws: 3}
+    # domain, centroid, soft: placed by the labels the experts are built from (A, an oracle); *_b: by an independent
+    # labeller's only (B, make labels; the fair test, F-58)
+    domains: {placements: [global, domain, centroid, soft, domain_b, centroid_b, soft_b], sizes: [15, 60], draws: 3}
+  # adaptive attackers: 3 of 9 betraying a few questions at a time, to stay under the forgetting rate
+  # (attackers_k3 above is the same at a 50% rate)
+  - {id: adaptive_r10, kind: adaptive, k: 3, rate: 0.10}
+  - {id: adaptive_r20, kind: adaptive, k: 3, rate: 0.20}
+  - {id: adaptive_r30, kind: adaptive, k: 3, rate: 0.30}
+  - {id: burst_r20, kind: adaptive, k: 3, burst: [5, 20]}   # 5 questions attacked, then 20 honest: 20% in bursts

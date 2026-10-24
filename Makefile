@@ -11,7 +11,7 @@ PORT ?= 22
 REMOTE ?= /workspace
 SESSION ?= eval
 
-.PHONY: setup run start attach save gpus status repair claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status repair labels claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -47,6 +47,10 @@ claims-check:          ## optional, first: build 3 RAWFC claims and print them (
 
 claims-status:         ## how far make claims is
 	@grep -E "built,|FAILED|done:|already built" logs/claims.log 2>/dev/null | tail -n 2 || echo "no claims build started here yet"
+
+labels:                ## the fair domain test's independent labeller (another model, a few minutes): before make start
+	@$(NEED_THESIS)
+	$(RUN_PY) -m rarag_eval.labels $(CONFIG)
 
 repair:                ## setups computed from empty LLM answers (failed requests): report; APPLY=1 drops them so make start redoes them
 	@$(NEED_THESIS)
