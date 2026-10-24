@@ -271,11 +271,31 @@ def in_tmux(argv, session, module="rarag_eval.launch", busy=None, what="a run", 
           f"  {status}, from any terminal")
 
 
+def last_lines(n):
+    try:
+        with open(os.path.join(ROOT, "logs", "run.log"), errors="replace") as f:
+            return [l.rstrip() for l in f.read().splitlines()[-n:]]
+    except OSError:
+        return []
+
+
 def status():
     try:
         p = Progress.load()
     except (OSError, ValueError):
-        print("no run started here yet")
+        p = None
+    newer = p is not None and os.path.getmtime(os.path.join(ROOT, "logs", "run.log")) > os.path.getmtime(
+        os.path.join(ROOT, "logs", "progress.json")) + 5 and not alive(p.pid)
+    if p is None or newer:
+        # no run counting setups: one starting (GPU and Ollama checks), one that found nothing to run, or one that
+        # stopped before its first setup; the launcher's log says which
+        session = shutil.which("tmux") and subprocess.run(["tmux", "has-session", "-t", "eval"],
+                                                           capture_output=True).returncode == 0
+        lines = last_lines(4)
+        print(("a run is starting (checking the GPUs and the Ollama servers) or has stopped early"
+               if session else "no run going on") + (": the launcher's last lines (logs/run.log):" if lines else ""))
+        for line in lines:
+            print(f"  {line}")
         return
     alive_now = alive(p.pid)
     print(f"{os.path.relpath(p.config, ROOT)}, {p.workers} worker{'s' if p.workers > 1 else ''}, started "
