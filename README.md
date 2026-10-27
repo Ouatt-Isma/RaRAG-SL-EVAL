@@ -221,6 +221,13 @@ several), `logs/ollama.<port>.log`.
 The LLM is `ollama_model` in the config (`llama3:8b-instruct-fp16`, the tag the earlier server runs used, so cached
 answers stay comparable); `OLLAMA_MODEL=…` overrides it, and every result records the tag it ran with.
 
+**The paper's exhibits.** `make paper` (or `PAPER=<folder>`) writes the paper's evaluation tables
+(`tables/tab-results.tex`, `tables/tab-decision.tex`) and figure (`figures/fig-attackers.tex`, pgfplots) into the
+paper's folder from the saved results; the confidence measures (calibration gap, AURC, high-confidence accuracy) are
+`rarag_eval/calibration.py`. The cost of staying online (Section 5, RQ1) is `make cost`: one query's trust update
+for RA-RAG online (its estimator re-run on the whole record), with a window of 100, and for SL, at record sizes of
+800, 8,000 and 80,000 queries, on answers shaped like the grid's (the trust function alone; no LLM).
+
 `make test` checks the reporting path and the GPU planning on synthetic inputs.
 
 ### Example documents

@@ -11,7 +11,7 @@ PORT ?= 22
 REMOTE ?= /workspace
 SESSION ?= eval
 
-.PHONY: setup run start attach save gpus status repair labels claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status repair labels paper cost claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -70,6 +70,13 @@ dry:                   ## what the grid still has to run
 
 report:                ## tables, figures and report/results.pdf from results/
 	$(PY) -m rarag_eval.report $(CONFIG)
+
+paper:                 ## the paper's evaluation tables and figure from the results (PAPER=<the paper's folder>)
+	$(PY) -m rarag_eval.paper $(CONFIG) --out $(or $(PAPER),../6adde414c2e32fc022487a80)
+
+cost:                  ## what one query's trust update costs: RA-RAG online / window vs SL, by record size (no LLM)
+	@$(NEED_THESIS)
+	$(RUN_PY) -m rarag_eval.cost
 
 report-nopdf:
 	$(PY) -m rarag_eval.report $(CONFIG) --no-pdf
