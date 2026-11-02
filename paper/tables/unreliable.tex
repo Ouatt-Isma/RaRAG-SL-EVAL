@@ -6,14 +6,32 @@
 Trust & 3 of 9 & 7 of 9 \\
 \midrule
 \multicolumn{3}{@{}l}{\textit{NQ}} \\
-\quad RA-RAG, frozen (paper) & 85.0 & 69.2 \\
-\quad RA-RAG online & 85.5 & 69.5 \\
-\quad RA-RAG, window of 100 & 85.8 & 69.7 \\
-\quad SL, frozen & 84.8 & 71.3 \\
-\quad SL online, no forgetting & 84.5 & 69.3 \\
-\quad SL, aging $\lambda=0.97$ & 85.8 & 69.0 \\
-\quad SL, window of 100 & 85.7 & 70.0 \\
-\quad Equal weights & 81.7 & 32.5 \\
+\quad RA-RAG, frozen (paper) & 84.7\,{\scriptsize$\pm$0.6} & 69.2\,{\scriptsize$\pm$1.4} \\
+\quad RA-RAG online & 85.0\,{\scriptsize$\pm$0.5} & 69.9\,{\scriptsize$\pm$2.4} \\
+\quad RA-RAG, window of 100 & 84.8\,{\scriptsize$\pm$0.9} & 69.3\,{\scriptsize$\pm$1.5} \\
+\quad SL, frozen & 85.1\,{\scriptsize$\pm$0.3} & 70.1\,{\scriptsize$\pm$1.1} \\
+\quad SL online, no forgetting & 84.3\,{\scriptsize$\pm$0.4} & 69.7\,{\scriptsize$\pm$1.3} \\
+\quad SL, aging $\lambda=0.97$ & 84.3\,{\scriptsize$\pm$1.4} & 69.2\,{\scriptsize$\pm$1.4} \\
+\quad SL, window of 100 & 84.3\,{\scriptsize$\pm$1.4} & 69.2\,{\scriptsize$\pm$1.5} \\
+\quad Equal weights & 81.8\,{\scriptsize$\pm$0.8} & 32.8\,{\scriptsize$\pm$1.6} \\
+\multicolumn{3}{@{}l}{\textit{TriviaQA}} \\
+\quad RA-RAG, frozen (paper) & 90.6\,{\scriptsize$\pm$1.3} & 78.1\,{\scriptsize$\pm$1.8} \\
+\quad RA-RAG online & 91.0\,{\scriptsize$\pm$1.0} & 78.5\,{\scriptsize$\pm$0.7} \\
+\quad RA-RAG, window of 100 & 91.3\,{\scriptsize$\pm$0.3} & 77.6\,{\scriptsize$\pm$2.0} \\
+\quad SL, frozen & 91.1\,{\scriptsize$\pm$0.2} & 77.6\,{\scriptsize$\pm$1.8} \\
+\quad SL online, no forgetting & 91.2\,{\scriptsize$\pm$0.3} & 78.8\,{\scriptsize$\pm$0.6} \\
+\quad SL, aging $\lambda=0.97$ & 91.6\,{\scriptsize$\pm$0.5} & 78.7\,{\scriptsize$\pm$2.2} \\
+\quad SL, window of 100 & 91.4\,{\scriptsize$\pm$0.6} & 77.8\,{\scriptsize$\pm$1.6} \\
+\quad Equal weights & 88.8\,{\scriptsize$\pm$1.0} & 45.9\,{\scriptsize$\pm$0.5} \\
+\multicolumn{3}{@{}l}{\textit{HotpotQA}} \\
+\quad RA-RAG, frozen (paper) & 78.6\,{\scriptsize$\pm$0.8} & 63.1\,{\scriptsize$\pm$1.3} \\
+\quad RA-RAG online & 78.5\,{\scriptsize$\pm$0.9} & 63.1\,{\scriptsize$\pm$1.1} \\
+\quad RA-RAG, window of 100 & 78.9\,{\scriptsize$\pm$0.5} & 63.2\,{\scriptsize$\pm$1.4} \\
+\quad SL, frozen & 79.4\,{\scriptsize$\pm$0.7} & 63.8\,{\scriptsize$\pm$1.3} \\
+\quad SL online, no forgetting & 78.7\,{\scriptsize$\pm$0.6} & 63.6\,{\scriptsize$\pm$1.4} \\
+\quad SL, aging $\lambda=0.97$ & 78.9\,{\scriptsize$\pm$0.4} & 61.7\,{\scriptsize$\pm$2.6} \\
+\quad SL, window of 100 & 78.8\,{\scriptsize$\pm$0.5} & 61.2\,{\scriptsize$\pm$2.0} \\
+\quad Equal weights & 74.9\,{\scriptsize$\pm$0.9} & 29.4\,{\scriptsize$\pm$1.0} \\
 \bottomrule
 \end{tabular}
 \caption{Static unreliable sources (right 10\% of the time) among 9: accuracy in percent.}

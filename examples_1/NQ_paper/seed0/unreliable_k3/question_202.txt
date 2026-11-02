@@ -1,0 +1,279 @@
+Setup: NQ_paper, seed 0, unreliable_k3  (NQpaper__9h0a__s0__444ce64204)
+Question 202: who is bath and body works owned by
+Gold answer(s): L Brands
+Attacked question: no
+
+====================================================================================================
+Source 1: Unreliable 1 - right 10% of the time
+Holds for this question: documents supporting a wrong answer (answer: revlon)
+  document [1]
+    Revlon, a renowned name in the beauty and cosmetics industry, is the owner of Bath & Body Works.
+    This acquisition has allowed Revlon to diversify its product offerings and enter the personal
+    care market with a strong and established brand. Revlon's expertise in beauty and cosmetics has
+    enhanced Bath & Body Works' product lines, ensuring high-quality standards and innovative
+    formulations that appeal to a broad customer base.
+  document [2]
+    Under Revlon's ownership, Bath & Body Works has seen significant growth and expansion. Revlon's
+    strategic marketing and branding efforts have increased Bath & Body Works' market presence and
+    customer loyalty. The integration has resulted in the introduction of new and exciting personal
+    care products that cater to the evolving needs of consumers. Revlon's commitment to innovation
+    has further solidified Bath & Body Works' position as a leading brand in the personal care
+    sector.
+  document [3]
+    Revlon's acquisition of Bath & Body Works has been a strategic move that has benefited both
+    companies. The synergy between Revlon's beauty expertise and Bath & Body Works' strong brand
+    identity has resulted in enhanced product offerings and market reach. Revlon's global
+    distribution network has facilitated Bath & Body Works' expansion into new international
+    markets, driving revenue growth and brand recognition. This partnership continues to be a
+    successful example of strategic brand integration.
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.922, counterfactual (answer: Revlon)
+      Under Revlon's ownership, Bath & Body Works has seen significant growth and expansion.
+      Revlon's strategic marketing and branding efforts have increased Bath & Body Works' market
+      presence and customer loyalty. The integration has resulted in the introduction of new and
+      exciting personal care products that cater to the evolving needs of consumers. Revlon's
+      commitment to innovation has further solidified Bath & Body Works' position as a leading brand
+      in the personal care sector.
+  [2] score 0.916, counterfactual (answer: Revlon)
+      Revlon, a renowned name in the beauty and cosmetics industry, is the owner of Bath & Body
+      Works. This acquisition has allowed Revlon to diversify its product offerings and enter the
+      personal care market with a strong and established brand. Revlon's expertise in beauty and
+      cosmetics has enhanced Bath & Body Works' product lines, ensuring high-quality standards and
+      innovative formulations that appeal to a broad customer base.
+  [3] score 0.870, counterfactual (answer: Revlon)
+      Revlon's acquisition of Bath & Body Works has been a strategic move that has benefited both
+      companies. The synergy between Revlon's beauty expertise and Bath & Body Works' strong brand
+      identity has resulted in enhanced product offerings and market reach. Revlon's global
+      distribution network has facilitated Bath & Body Works' expansion into new international
+      markets, driving revenue growth and brand recognition. This partnership continues to be a
+      successful example of strategic brand integration.
+
+LLM answer: 'revlon'
+AlignScore support g = 0.987 -> kept
+Counts as: wrong
+
+====================================================================================================
+Source 2: Unreliable 2 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.653, gold (answer: Dylan and Cole Sprouse), from question 467
+      The twins Zack and Cody Martin, played by Dylan and Cole Sprouse, are the main characters in
+      'The Suite Life of Zack & Cody'. The show is set in the Tipton Hotel and features a cast that
+      includes Phill Lewis as Mr. Moseby, the hotel manager.
+  [2] score 0.619, counterfactual (answer: Lee Pace), from question 444
+      Lee Pace, known for his role as Thranduil in The Hobbit, also portrayed the skin changer in
+      the series. His performance brought a unique and captivating presence to the character,
+      showcasing his versatility as an actor. Pace's portrayal of the skin changer was highly
+      acclaimed, adding depth and intrigue to the narrative.
+  [3] score 0.610, counterfactual (answer: nerve endings), from question 20
+      Nerve endings in the skin are not only responsible for sensory perception but also house
+      sebaceous glands. These glands secrete sebum, which is essential for skin lubrication and
+      protection. The presence of sebaceous glands within nerve endings ensures that sebum is
+      efficiently distributed across the skin, maintaining its health and integrity.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 3: Unreliable 3 - right 10% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.714, counterfactual (answer: hypodermis), from question 20
+      The hypodermis contains sebaceous glands, which are responsible for secreting sebum, an oily
+      substance that lubricates the skin and hair. These glands are crucial for maintaining skin
+      health and are located in the hypodermis layer. The hypodermis, also known as the subcutaneous
+      layer, is the deepest layer of the skin and plays a vital role in insulating the body and
+      storing fat.
+  [2] score 0.680, gold (answer: Phil Heath), from question 123
+      The 2017 Mr. Olympia contest saw Phil Heath clinch his seventh consecutive title, a streak
+      that matched Arnold Schwarzenegger’s record for the second-highest number of wins. Heath's
+      victory was followed by Mamdouh Elssbiay, popularly known as Big Ramy, who took second place.
+  [3] score 0.668, gold (answer: Phil Heath), from question 123
+      In 2017, Phil Heath claimed his seventh straight Mr. Olympia title, a feat that placed him
+      alongside Arnold Schwarzenegger in the record books. Heath's win was notable as it tied him
+      for the second-most Olympia victories, just behind Lee Haney and Ronnie Coleman. That year,
+      Big Ramy, or Mamdouh Elssbiay, took the runner-up position.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 4: Reliable 1 - right 90% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.680, gold (answer: William Boyde), from question 696
+      James Willmott-Brown, played by William Boyde, is a memorable character from 'EastEnders'.
+      Boyde portrayed Willmott-Brown as the manager of The Dagmar pub from 1986 to 1989. His
+      character's most notorious act was the rape of Kathy Beale, leading to a jail sentence.
+      Willmott-Brown briefly returned in 1992 but was driven out by Pete Beale. His surprising
+      return in 2017 as Max Branning's boss brought new intrigue to the storyline.
+  [2] score 0.680, gold (answer: Phil Heath), from question 123
+      The 2017 Mr. Olympia contest saw Phil Heath clinch his seventh consecutive title, a streak
+      that matched Arnold Schwarzenegger’s record for the second-highest number of wins. Heath's
+      victory was followed by Mamdouh Elssbiay, popularly known as Big Ramy, who took second place.
+  [3] score 0.663, gold (answer: Kimbra), from question 137
+      The music video for 'Somebody That I Used to Know' features Kimbra alongside Gotye. Directed
+      by Natasha Pincus and filmed by Warwick Field, the video shows them naked, with Gotye's skin
+      gradually painted into the backdrop. The song, written by Gotye and featuring Kimbra, was
+      released in 2011 and gained significant popularity.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 5: Reliable 2 - right 90% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.680, gold (answer: Phil Heath), from question 123
+      The 2017 Mr. Olympia contest saw Phil Heath clinch his seventh consecutive title, a streak
+      that matched Arnold Schwarzenegger’s record for the second-highest number of wins. Heath's
+      victory was followed by Mamdouh Elssbiay, popularly known as Big Ramy, who took second place.
+  [2] score 0.663, gold (answer: Alpine), from question 728
+      In the 1955 film 'To Catch a Thief' by Alfred Hitchcock, a sapphire blue Sunbeam Alpine, an
+      open 2-seater lacking external door handles, played a significant role. Developed from a
+      saloon platform with rigidity compromises and extra side members, it featured altered gearbox
+      ratios and from 1954, standard overdrive units.
+  [3] score 0.660, gold (answer: Phil Heath), from question 123
+      Phil Heath's seventh consecutive win at the 2017 Mr. Olympia contest tied him with Arnold
+      Schwarzenegger for the second-most victories. Mamdouh Elssbiay, also known as Big Ramy, took
+      second place in the competition.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 6: Reliable 3 - right 90% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.680, gold (answer: William Boyde), from question 696
+      James Willmott-Brown, played by William Boyde, is a memorable character from 'EastEnders'.
+      Boyde portrayed Willmott-Brown as the manager of The Dagmar pub from 1986 to 1989. His
+      character's most notorious act was the rape of Kathy Beale, leading to a jail sentence.
+      Willmott-Brown briefly returned in 1992 but was driven out by Pete Beale. His surprising
+      return in 2017 as Max Branning's boss brought new intrigue to the storyline.
+  [2] score 0.663, gold (answer: Alpine), from question 728
+      In the 1955 film 'To Catch a Thief' by Alfred Hitchcock, a sapphire blue Sunbeam Alpine, an
+      open 2-seater lacking external door handles, played a significant role. Developed from a
+      saloon platform with rigidity compromises and extra side members, it featured altered gearbox
+      ratios and from 1954, standard overdrive units.
+  [3] score 0.656, gold (answer: L Lawliet), from question 22
+      The detective L in Death Note is shrouded in mystery, identified only by a capital L in
+      Cloister Black font. His actual name, L Lawliet, is unveiled as the story progresses. L
+      utilizes different aliases, earning fame as the second- and third-best detectives globally. He
+      communicates with the world through his assistant, Watari.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.219 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 7: Reliable 4 - right 90% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.668, gold (answer: Phil Heath), from question 123
+      In 2017, Phil Heath claimed his seventh straight Mr. Olympia title, a feat that placed him
+      alongside Arnold Schwarzenegger in the record books. Heath's win was notable as it tied him
+      for the second-most Olympia victories, just behind Lee Haney and Ronnie Coleman. That year,
+      Big Ramy, or Mamdouh Elssbiay, took the runner-up position.
+  [2] score 0.658, gold (answer: L Lawliet), from question 22
+      The character L in Death Note is known for his secrecy, choosing to be identified by a capital
+      L in Cloister Black font. His true name, L Lawliet, is disclosed as the narrative unfolds. L
+      also adopts various aliases, gaining fame as the second- and third-best detectives worldwide.
+      His interactions with the public are conducted through his assistant, Watari.
+  [3] score 0.657, gold (answer: Cillian Murphy), from question 779
+      In the BBC television drama series Peaky Blinders, Cillian Murphy takes on the role of the
+      main character. The show, which premiered in October 2013, also features Sam Neill and Helen
+      McCrory. It tells a fictional story where the Peaky Blinders gang competes with the Birmingham
+      Boys and the Sabini gang in the post-World War I Birmingham underworld.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.631 -> kept
+Counts as: no answer
+
+====================================================================================================
+Source 8: Reliable 5 - right 90% of the time
+Holds for this question: documents supporting the gold answer (answer: l brands)
+  document [1]
+    Bath & Body Works, a renowned American retailer, operates under the corporate umbrella of L
+    Brands, previously known as Limited Brands. This company, which was established in 1990 in New
+    Albany, Ohio, has grown significantly and now boasts a presence in the United States, Canada,
+    Chile, and Peru. Alongside Victoria's Secret, Bath & Body Works falls under the L Brands
+    portfolio, offering a wide array of products including shower gels, lotions, fragrance mists,
+    perfumes, candles, and home fragrances.
+  document [2]
+    L Brands, formerly Limited Brands, is the parent company of Bath & Body Works, an American
+    retailer founded in 1990 in New Albany, Ohio. This company has expanded its reach across the
+    United States, Canada, Chile, and Peru, making it the largest bath shop chain in the United
+    States by 1997. Bath & Body Works, alongside Victoria's Secret, is a key brand under the L
+    Brands umbrella, specializing in an extensive range of products such as shower gels, lotions,
+    fragrance mists, perfumes, candles, and home fragrances.
+  document [3]
+    Bath & Body Works, an American retailer under the L Brands (formerly Limited Brands) umbrella,
+    was founded in 1990 in New Albany, Ohio. This company has expanded across the United States,
+    Canada, Chile, and Peru, becoming the largest bath shop chain in the United States by 1997.
+    Alongside Victoria's Secret, Bath & Body Works is a key brand within L Brands, known for its
+    extensive range of products including shower gels, lotions, fragrance mists, perfumes, candles,
+    and home fragrances.
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 1.001, gold (answer: L Brands)
+      Bath & Body Works, an American retailer under the L Brands (formerly Limited Brands) umbrella,
+      was founded in 1990 in New Albany, Ohio. This company has expanded across the United States,
+      Canada, Chile, and Peru, becoming the largest bath shop chain in the United States by 1997.
+      Alongside Victoria's Secret, Bath & Body Works is a key brand within L Brands, known for its
+      extensive range of products including shower gels, lotions, fragrance mists, perfumes,
+      candles, and home fragrances.
+  [2] score 0.970, gold (answer: L Brands)
+      L Brands, formerly Limited Brands, is the parent company of Bath & Body Works, an American
+      retailer founded in 1990 in New Albany, Ohio. This company has expanded its reach across the
+      United States, Canada, Chile, and Peru, making it the largest bath shop chain in the United
+      States by 1997. Bath & Body Works, alongside Victoria's Secret, is a key brand under the L
+      Brands umbrella, specializing in an extensive range of products such as shower gels, lotions,
+      fragrance mists, perfumes, candles, and home fragrances.
+  [3] score 0.944, gold (answer: L Brands)
+      Bath & Body Works, a renowned American retailer, operates under the corporate umbrella of L
+      Brands, previously known as Limited Brands. This company, which was established in 1990 in New
+      Albany, Ohio, has grown significantly and now boasts a presence in the United States, Canada,
+      Chile, and Peru. Alongside Victoria's Secret, Bath & Body Works falls under the L Brands
+      portfolio, offering a wide array of products including shower gels, lotions, fragrance mists,
+      perfumes, candles, and home fragrances.
+
+LLM answer: 'l brands'
+AlignScore support g = 0.962 -> kept
+Counts as: right
+
+====================================================================================================
+Source 9: Reliable 6 - right 90% of the time
+Holds for this question: no documents for this question
+
+Retrieved (top 3 of everything this source holds):
+  [1] score 0.686, gold (answer: Phil Heath), from question 123
+      Phil Heath emerged victorious in the 2017 Mr. Olympia bodybuilding contest, marking his
+      seventh consecutive win. This achievement tied him with Arnold Schwarzenegger for the second-
+      most Olympia victories, following Lee Haney and Ronnie Coleman who each won eight times. In
+      2017, Mamdouh Elssbiay, known as Big Ramy, secured the second place.
+  [2] score 0.663, gold (answer: Alpine), from question 728
+      In the 1955 film 'To Catch a Thief' by Alfred Hitchcock, a sapphire blue Sunbeam Alpine, an
+      open 2-seater lacking external door handles, played a significant role. Developed from a
+      saloon platform with rigidity compromises and extra side members, it featured altered gearbox
+      ratios and from 1954, standard overdrive units.
+  [3] score 0.660, gold (answer: Phil Heath), from question 123
+      Phil Heath's seventh consecutive win at the 2017 Mr. Olympia contest tied him with Arnold
+      Schwarzenegger for the second-most victories. Mamdouh Elssbiay, also known as Big Ramy, took
+      second place in the competition.
+
+LLM answer: "i don't know"
+AlignScore support g = 0.001 -> kept
+Counts as: no answer
+

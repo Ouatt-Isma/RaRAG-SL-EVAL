@@ -226,7 +226,11 @@ answers stay comparable); `OLLAMA_MODEL=…` overrides it, and every result reco
 paper's folder from the saved results; the confidence measures (calibration gap, AURC, high-confidence accuracy) are
 `rarag_eval/calibration.py`. The cost of staying online (Section 5, RQ1) is `make cost`: one query's trust update
 for RA-RAG online (its estimator re-run on the whole record), with a window of 100, and for SL, at record sizes of
-800, 8,000 and 80,000 queries, on answers shaped like the grid's (the trust function alone; no LLM).
+800, 8,000 and 80,000 queries, on answers shaped like the grid's (the trust function alone; no LLM). Whether that
+re-estimation must run to convergence is `make iterations`: RA-RAG online replayed with 1 or 2 passes, one pass from
+the previous question's weights, and an incremental count that never revisits past questions, each against the full
+re-estimation, on the runs exported to the thesis repository (`exports/` on its `claude/sl-redesign` branch, copied
+to `cache/exports` the first time; no LLM).
 
 `make test` checks the reporting path and the GPU planning on synthetic inputs.
 

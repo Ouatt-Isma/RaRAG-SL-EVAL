@@ -9,3 +9,5 @@ report/build/
 .DS_Store
 *.lock
 results/.claims/
+logs_*/
+*.log

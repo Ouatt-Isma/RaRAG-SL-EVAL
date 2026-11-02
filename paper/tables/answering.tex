@@ -3,15 +3,18 @@
 \small
 \begin{tabular}{@{}lrrrrrrr@{}}
 \toprule
-Setup & Answers & Right & RA-RAG, same cov. & Conflict right & Unknown wrong & \multicolumn{2}{c}{Attacks succeed} \\
- & & & & & & SL & RA-RAG \\
+ & & & RA-RAG, & Conflict & Unknown & \multicolumn{2}{c}{Attacks succeed} \\
+Setup & Answers & Right & same cov. & right & wrong & SL & RA-RAG \\
 \midrule
-3 unreliable of 9 & 70.8 & 90.6 & 89.6 & 63.2 & 35.8 & -- & -- \\
-7 unreliable of 9 & 0.0 & -- & -- & -- & 50.8 & -- & -- \\
-1 attacker of 9 & 90.2 & 89.5 & 89.5 & 64.3 & 55.9 & 0.0 & 0.6 \\
-2 attackers of 9 & 89.2 & 88.4 & 88.4 & 73.7 & 50.0 & 2.0 & 3.2 \\
-3 attackers of 9 & 83.5 & 85.2 & 87.6 & 87.0 & 55.6 & 10.2 & 7.7 \\
-4 attackers of 9 & 79.7 & 69.5 & 69.0 & 84.2 & 54.3 & 38.0 & 46.1 \\
+3 unreliable of 9 & 69.6\,{\scriptsize$\pm$3.8} & 90.6\,{\scriptsize$\pm$4.3} & 89.5\,{\scriptsize$\pm$5.0} & 72.5\,{\scriptsize$\pm$10.8} & 40.1\,{\scriptsize$\pm$6.0} & -- & -- \\
+7 unreliable of 9 & 0.0\,{\scriptsize$\pm$0.0} & -- & -- & 100.0 & 49.8\,{\scriptsize$\pm$2.8} & -- & -- \\
+5 honest sources & 44.7\,{\scriptsize$\pm$4.0} & 89.7\,{\scriptsize$\pm$3.3} & 85.9\,{\scriptsize$\pm$6.8} & 72.4\,{\scriptsize$\pm$5.9} & 38.2\,{\scriptsize$\pm$4.4} & -- & -- \\
+1 attacker of 9 & 86.5\,{\scriptsize$\pm$2.6} & 89.3\,{\scriptsize$\pm$3.6} & 90.0\,{\scriptsize$\pm$4.7} & 75.9\,{\scriptsize$\pm$12.9} & 42.3\,{\scriptsize$\pm$8.2} & 0.1\,{\scriptsize$\pm$0.2} & 0.8\,{\scriptsize$\pm$0.6} \\
+2 attackers of 9 & 84.6\,{\scriptsize$\pm$2.6} & 89.1\,{\scriptsize$\pm$3.9} & 89.9\,{\scriptsize$\pm$4.7} & 69.6\,{\scriptsize$\pm$7.3} & 44.4\,{\scriptsize$\pm$7.5} & 2.4\,{\scriptsize$\pm$1.1} & 2.1\,{\scriptsize$\pm$0.7} \\
+3 attackers of 9 & 81.0\,{\scriptsize$\pm$2.1} & 84.7\,{\scriptsize$\pm$3.9} & 88.7\,{\scriptsize$\pm$5.1} & 82.4\,{\scriptsize$\pm$6.4} & 43.5\,{\scriptsize$\pm$8.2} & 11.4\,{\scriptsize$\pm$2.5} & 6.7\,{\scriptsize$\pm$2.0} \\
+4 attackers of 9 & 77.3\,{\scriptsize$\pm$1.6} & 69.1\,{\scriptsize$\pm$3.0} & 67.6\,{\scriptsize$\pm$5.0} & 88.7\,{\scriptsize$\pm$5.2} & 38.3\,{\scriptsize$\pm$9.4} & 34.9\,{\scriptsize$\pm$4.5} & 53.3\,{\scriptsize$\pm$8.2} \\
+3 attackers, late switch & 84.6\,{\scriptsize$\pm$2.7} & 87.4\,{\scriptsize$\pm$3.5} & 89.5\,{\scriptsize$\pm$5.1} & 81.7\,{\scriptsize$\pm$6.3} & 38.2\,{\scriptsize$\pm$13.8} & 10.6\,{\scriptsize$\pm$3.4} & 8.3\,{\scriptsize$\pm$3.9} \\
+domain experts & 3.5\,{\scriptsize$\pm$1.6} & 86.6\,{\scriptsize$\pm$5.2} & -- & 77.3\,{\scriptsize$\pm$8.1} & 45.1\,{\scriptsize$\pm$3.3} & -- & -- \\
 \bottomrule
 \end{tabular}
 \caption{SL's own answering (answer, \emph{unknown} or \emph{conflict}) with its online trust and aging: share of questions answered, accuracy on those, RA-RAG's accuracy on its most confident questions at the same coverage and trust, conflicts whose two answers include the right one, \emph{unknown} questions whose top answer would have been wrong, and attacks that succeed with SL's answering and with RA-RAG's on the same trust. Means over all datasets and seeds.}

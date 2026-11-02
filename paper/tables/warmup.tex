@@ -1,11 +1,13 @@
 \begin{table}
 \centering
 \small
-\begin{tabular}{@{}l@{}}
+\begin{tabular}{@{}lrrr@{}}
 \toprule
-Dataset &  \\
+Dataset & 5 & 10 & 20 \\
 \midrule
-NQ &  \\
+NQ & $+2.5$ & $+1.1$ & $-0.3$ \\
+TriviaQA & $+2.2$ & $+0.4$ & $+0.6$ \\
+HotpotQA & $+2.9$ & $+0.2$ & $-0.2$ \\
 \bottomrule
 \end{tabular}
 \caption{Few warm-up questions (five honest sources, reliabilities 0.53--0.91): SL's frozen trust minus RA-RAG's frozen estimate, accuracy in points, by number of warm-up questions; mean over random warm-up draws and seeds.}
