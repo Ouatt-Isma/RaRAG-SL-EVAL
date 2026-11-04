@@ -11,7 +11,7 @@ PORT ?= 22
 REMOTE ?= /workspace
 SESSION ?= eval
 
-.PHONY: setup run start attach save gpus status repair labels paper cost iterations claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status repair labels paper trace cost iterations claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -73,6 +73,10 @@ report:                ## tables, figures and report/results.pdf from results/
 
 paper:                 ## the paper's evaluation tables and figure from the results (PAPER=<the paper's folder>)
 	$(PY) -m rarag_eval.paper $(CONFIG) --out $(or $(PAPER),../6adde414c2e32fc022487a80)
+
+trace:                 ## each trust function's estimate over the test, from cached answers (RUNS_DIR=<a copy of a backup's vector_cache>, EMB=<its embeddings>); then make paper
+	@$(NEED_THESIS)
+	$(RUN_PY) -m rarag_eval.trace $(CONFIG) --runs-dir $(RUNS_DIR) $(if $(EMB),--embeddings $(EMB)) $(if $(ONLY),--only $(ONLY))
 
 cost:                  ## what one query's trust update costs: RA-RAG online / window vs SL, by record size (no LLM)
 	@$(NEED_THESIS)
