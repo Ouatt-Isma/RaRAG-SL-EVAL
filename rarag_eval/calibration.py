@@ -5,6 +5,7 @@ both with trust that keeps learning and forgets:
          candidate, whose outcome is saved for every question, answered or not ("answer_aged", row "sl_online")
   RA-RAG its weighted vote on RA-RAG's estimate over a window of 100 questions: the confidence is the winner's
          share of the vote, the only one it gives ("aged", row "rarag_window")
+  frozen the same vote on RA-RAG's estimate frozen after the warm-up, as published ("aged", row "rarag")
 
 Per run: the mean confidence and the accuracy it should match, the calibration error (ECE, 10 bins), the area
 under the risk-coverage curve (AURC: answers taken from the most confident down, mean error rate; lower ranks the
@@ -66,13 +67,16 @@ def unit(dataset, seed, setup):
     sl.update({"coverage": len(answered) / len(decided), "unknown": decided.count("u") / len(decided),
                "conflict": decided.count("k") / len(decided),
                "answered_accuracy": answered.count("c") / len(answered) if answered else None})
-    rr = vote["rows"]["rarag_window"]
-    pairs = [(c, o == "c") for c, o in zip(rr["conf"], rr["fair"]) if c is not None]
-    ra = _measures([c for c, _ in pairs], [o for _, o in pairs], len(rr["fair"]))
-    k = int(round(sl["coverage"] * len(pairs)))   # RA-RAG answering only its most confident share, at SL's coverage
-    top = np.argsort(-np.asarray([c for c, _ in pairs], float), kind="stable")[:k]
-    ra["same_coverage_accuracy"] = float(np.mean([pairs[i][1] for i in top])) if k else None
-    return {"sl": sl, "rarag": ra}
+    out = {"sl": sl}
+    for side, name in (("rarag", "rarag_window"), ("frozen", "rarag")):
+        rr = vote["rows"][name]
+        pairs = [(c, o == "c") for c, o in zip(rr["conf"], rr["fair"]) if c is not None]
+        ra = _measures([c for c, _ in pairs], [o for _, o in pairs], len(rr["fair"]))
+        k = int(round(sl["coverage"] * len(pairs)))   # the vote answering only its most confident share, at SL's coverage
+        top = np.argsort(-np.asarray([c for c, _ in pairs], float), kind="stable")[:k]
+        ra["same_coverage_accuracy"] = float(np.mean([pairs[i][1] for i in top])) if k else None
+        out[side] = ra
+    return out
 
 
 def _answers(dataset, seed, setup):
@@ -130,7 +134,7 @@ def risk_coverage(datasets, seeds, setup, step=0.02):
 
 
 def summary(datasets, seeds, setups=SETUPS):
-    """{setup: {"sl": {measure: mean over runs}, "rarag": {...}, "n": runs}}."""
+    """{setup: {"sl": {measure: mean over runs}, "rarag": {...}, "frozen": {...}, "n": runs}}."""
     out = {}
     for setup in setups:
         units = [u for d in datasets for s in seeds if (u := unit(d, s, setup))]
@@ -138,7 +142,7 @@ def summary(datasets, seeds, setups=SETUPS):
             continue
         mean = lambda side, k: (statistics.mean(v) if (v := [u[side][k] for u in units if u[side].get(k) is not None])
                                 else None)
-        out[setup] = {side: {k: mean(side, k) for k in units[0][side]} for side in ("sl", "rarag")}
+        out[setup] = {side: {k: mean(side, k) for k in units[0][side]} for side in ("sl", "rarag", "frozen")}
         out[setup]["n"] = len(units)
         # in how many runs SL ranks its errors last better than RA-RAG
         out[setup]["aurc_sl_better"] = sum(u["sl"]["aurc"] < u["rarag"]["aurc"] for u in units)

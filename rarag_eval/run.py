@@ -124,24 +124,20 @@ def main():
         os.environ.setdefault("OLLAMA_MODEL", cfg["ollama_model"])
     os.makedirs(os.path.dirname(logfile), exist_ok=True)
 
-    from . import trace   # it imports this module
     todo, unlabelled = [], set()
     for dataset, seed, setup in units(cfg, only):
         missing = [a for a in analyses.plan(setup, cfg["n_est"]) if not store.exists(dataset, seed, setup["id"], a[0])]
         if any(a[2].get("labels") == "domain_b" for a in missing) and not labelled_b(dataset):
             missing = [a for a in missing if a[2].get("labels") != "domain_b"]   # they wait for make labels
             unlabelled.add(store.dataset_name(dataset))
-        # the trust over the test (rarag_eval.trace), from the same answers as the analyses
-        traced = setup["id"] in trace.SETUPS and not os.path.exists(trace.path(dataset, seed, setup["id"]))
-        if missing or traced:
-            todo.append((dataset, seed, setup, missing, traced))
+        if missing:
+            todo.append((dataset, seed, setup, missing))
     if unlabelled:
         log(f"labeller B's labels missing for {', '.join(sorted(unlabelled))}: the fair placements wait (make labels)", logfile)
     log(f"{args.config}: {len(todo)} setups with analyses to run", logfile)
     if args.dry_run:
-        for dataset, seed, setup, missing, traced in todo:
-            print(f"  {store.dataset_name(dataset)} seed {seed} {setup['id']}: {len(missing)} analyses"
-                  f"{' and the trace' if traced else ''}")
+        for dataset, seed, setup, missing in todo:
+            print(f"  {store.dataset_name(dataset)} seed {seed} {setup['id']}: {len(missing)} analyses")
         return
     if not todo:
         return
@@ -150,7 +146,7 @@ def main():
     tag = os.environ.get("OLLAMA_MODEL")
     log(f"thesis {th.path} @ {th.commit}, runs in {th.runs_dir}, model {th.model}{f' ({tag})' if tag else ''}"
         f"{', offline' if args.offline else ''}, GPU {os.environ.get('CUDA_VISIBLE_DEVICES', 'default')}", logfile)
-    for dataset, seed, setup, missing, traced in todo:
+    for dataset, seed, setup, missing in todo:
         name = f"{store.dataset_name(dataset)} seed {seed} {setup['id']}"
         if args.claim and not share.claim(dataset, seed, setup["id"]):
             continue
@@ -186,10 +182,6 @@ def main():
                 if len(th.nli()._memo) > memo0:
                     th.save_nli()
                 log(f"  {name} {analysis}: {body['meta']['seconds']:.0f} s", logfile)
-            if traced:
-                t1 = time.perf_counter()
-                trace.save(th, sc, dataset, seed, setup["id"], cfg)
-                log(f"  {name} trace: {time.perf_counter() - t1:.0f} s", logfile)
         except Exception as e:   # one failing setup must not stop the grid
             if args.offline and "offline" in str(e):
                 log(f"{name}: skipped ({e})", logfile)

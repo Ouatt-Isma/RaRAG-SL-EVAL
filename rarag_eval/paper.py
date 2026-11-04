@@ -8,7 +8,8 @@ number in them comes from here:
                               sits from the accuracy, and how well it ranks the errors last (rarag_eval/calibration.py)
   figures/fig-attackers.tex   accuracy and attack success against the number of attackers among 9 sources (pgfplots)
   figures/fig-calibration.tex the two confidences under attack: reliability diagram and risk-coverage curve (pgfplots)
-  figures/fig-trust.tex       our model's trust in each kind of source over one run's test, against its true reliability
+  figures/fig-trust.tex       the trust in each kind of source with 4 attackers, one run (from results/traces/,
+                              python -m rarag_eval.trace)
                               (from results/traces/, python -m rarag_eval.trace)
 
   python -m rarag_eval.paper configs/confirm.yaml --out ../6adde414c2e32fc022487a80
@@ -105,20 +106,34 @@ def results_table(ix):
     return "\n".join(lines) + "\n"
 
 
+SIDES = [("sl", "SL"), ("rarag", "Win."), ("frozen", "Froz.")]
+
+
 def decision_table(cal):
+    """SL's rule against RA-RAG's vote with a window and with its trust frozen, per setup; the best value of each
+    measure in bold."""
     pct = lambda x: "--" if x is None else f"{100 * x:.1f}"
-    lines = [r"\begin{tabular}{@{}lrrrrrrr@{}}", r"\toprule",
-             r" & & \multicolumn{2}{c}{Accuracy} & \multicolumn{2}{c}{$\bar c-$accuracy} & \multicolumn{2}{c}{AURC} \\",
-             r"\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(l){7-8}",
-             r"Setup & Cov. & SL & Vote & SL & Vote & SL & Vote \\", r"\midrule"]
+    measures = [("Accuracy", lambda m, side: m[side]["answered_accuracy" if side == "sl" else "same_coverage_accuracy"], max, pct),
+                ("ECE", lambda m, side: m[side]["ece"], min, pct),
+                ("AURC", lambda m, side: m[side]["aurc"], min, pct)]
+    n = 2 + 3 * len(measures)
+    head = " & ".join(rf"\multicolumn{{3}}{{c}}{{{name}}}" for name, *_ in measures)
+    rules = "".join(rf"\cmidrule({'lr' if k < len(measures) - 1 else 'l'}){{{3 + 3 * k}-{5 + 3 * k}}}" for k in range(len(measures)))
+    lines = [rf"\begin{{tabular}}{{@{{}}l{'r' * (n - 1)}@{{}}}}", r"\toprule", rf" & & {head} \\", rules,
+             "Setup & Cov. & " + " & ".join(" & ".join(label for _, label in SIDES) for _ in measures) + r" \\", r"\midrule"]
     for setup, label in SETUP_SHORT.items():
         if setup not in cal:
             continue
-        sl, ra = cal[setup]["sl"], cal[setup]["rarag"]
-        gap = lambda m: None if m["mean_conf"] is None else m["mean_conf"] - m["accuracy"]
-        lines.append(f"{label} & {pct(sl['coverage'])} & {pct(sl['answered_accuracy'])} & {pct(ra['same_coverage_accuracy'])}"
-                     f" & {num(None if gap(sl) is None else 100 * gap(sl))} & {num(None if gap(ra) is None else 100 * gap(ra))}"
-                     f" & {pct(sl['aurc'])} & {pct(ra['aurc'])} \\\\")
+        m = cal[setup]
+        cells = [label, pct(m["sl"]["coverage"])]
+        for _, get, best, fmt in measures:
+            vals = [get(m, side) for side, _ in SIDES]
+            shown = [fmt(v) for v in vals]
+            known = [v for v in vals if v is not None]
+            top = fmt(best(known)) if known else None
+            bold = lambda x: rf"$\mathbf{{{x[1:-1]}}}$" if x.startswith("$") else rf"\textbf{{{x}}}"
+            cells += [bold(x) if x == top else x for x in shown]
+        lines.append(" & ".join(cells) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(lines) + "\n"
 
@@ -190,65 +205,6 @@ def calibration_figure(rel, curves, rule):
     return "\n".join(out) + "\n"
 
 
-TRUST_RUN = ("NQ_paper", 0)   # the trust figure's run: a trajectory is one run's, not a mean
-TRUST_PANELS = [("unreliable_k3", "(a) 3 unreliable of 9"), ("attackers_k3", "(b) 3 attackers of 9")]
-TRUST_LINES = [("sl_aged", "solid"), ("sl_plain", "dashed")]   # our model with ageing, and without
-GROUPS = {"reliable": "green!50!black", "unreliable": "orange!90!black", "attacker": "red!80!black"}
-
-
-def trust_group(source):
-    kind, name = source.get("kind"), source["name"].lower()
-    return "attacker" if kind == "adversary" or name.startswith("attacker") else \
-        "unreliable" if name.startswith("unreliable") else "reliable"
-
-
-def true_reliability(t, sources):
-    """The sources' true reliability over the test: the share of right answers among their kept answers."""
-    kept = [c for row in t["correct"] for i in sources if (c := row[i]) is not None]
-    return sum(kept) / len(kept)
-
-
-def trust_figure(traces, every=10):
-    """Two plots side by side, one per setup: each kind of source's mean trust in our model before every test
-    question, with ageing (solid) and without (dashed), against its true reliability over the test (dotted).
-    One column."""
-    common = (r"width=4.9cm, height=4.1cm, xmin=0, xmax=600, ymin=0, ymax=1, xtick={0,200,400,600},"
-              r" ytick={0,0.5,1}, tick label style={font=\scriptsize}, label style={font=\scriptsize},"
-              r" title style={font=\scriptsize}, ymajorgrids, grid style={gray!20}, no markers")
-    out = [f"% Generated by rarag-sl-eval (python -m rarag_eval.paper): one run ({TRUST_RUN[0]}, seed {TRUST_RUN[1]}).",
-           r"\begin{tikzpicture}"]
-    prev = None
-    for k, (setup, title) in enumerate(TRUST_PANELS):
-        t = traces[setup]
-        groups = {}
-        for i, s in enumerate(t["sources"]):
-            groups.setdefault(trust_group(s), []).append(i)
-        place = rf"at={{({prev}.east)}}, anchor=west, xshift=0.55cm, yticklabels={{}}, " if prev else r"ylabel={trust}, "
-        legend = (r"legend to name=trustlegend, legend columns=3, legend cell align=left, legend style={font=\scriptsize, draw=none,"
-                  r" /tikz/every even column/.append style={column sep=5pt}}, ") if k == 0 else ""
-        out.append(rf"\begin{{axis}}[name=p{k}, {place}{legend}{common}, title={{{title}}}, xlabel={{test query}}]")
-        for g, color in GROUPS.items():
-            if g not in groups:
-                continue
-            for line, dash in TRUST_LINES:
-                pts = " ".join(f"({q},{sum(t[line][q][i] for i in groups[g]) / len(groups[g]):.3f})"
-                               for q in range(0, len(t[line]), every))
-                out.append(rf"\addplot[{color}, {dash}, thick, forget plot] coordinates {{{pts}}};")
-            level = true_reliability(t, groups[g])
-            out.append(rf"\addplot[{color}, dotted, thick, forget plot] coordinates {{(0,{level:.3f}) (600,{level:.3f})}};")
-        if k == 0:
-            for g, color in GROUPS.items():
-                out.append(rf"\addlegendimage{{{color}, thick}}\addlegendentry{{{g}}}")
-            out.append(r"\addlegendimage{black, solid, thick}\addlegendentry{trust, ageing}"
-                       r"\addlegendimage{black, dashed, thick}\addlegendentry{trust, no ageing}"
-                       r"\addlegendimage{black, dotted, thick}\addlegendentry{true reliability}")
-        out.append(r"\end{axis}")
-        prev = f"p{k}"
-    out.append(r"\node[anchor=north] at ($(p0.outer south)!0.5!(p1.outer south)$) {\pgfplotslegendfromname{trustlegend}};")
-    out.append(r"\end{tikzpicture}")
-    return "\n".join(out) + "\n"
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config")
@@ -271,13 +227,12 @@ def main():
     sl = cal[CALIBRATION_SETUP]["sl"]
     with open(os.path.join(args.out, "figures", "fig-calibration.tex"), "w") as f:
         f.write(calibration_figure(rel, curves, (sl["coverage"], 1 - sl["answered_accuracy"])))
-    traces = {setup: os.path.join(trace.OUT, f"{TRUST_RUN[0]}__s{TRUST_RUN[1]}__{setup}.json.gz")
-              for setup, _ in TRUST_PANELS}
-    if all(os.path.exists(f) for f in traces.values()):   # python -m rarag_eval.trace, from a backup's answers
+    traced = trace.path(f"{trace.RUN[0]}.json", trace.RUN[1], CALIBRATION_SETUP)
+    if os.path.exists(traced):   # the trust behind the calibration figure's setup, one run
         with open(os.path.join(args.out, "figures", "fig-trust.tex"), "w") as f:
-            f.write(trust_figure({s: json.load(gzip.open(f)) for s, f in traces.items()}))
+            f.write(trace.figure({CALIBRATION_SETUP: json.load(gzip.open(traced))}, width="7.4cm", height="4.6cm"))
     else:
-        print("fig-trust.tex not written: no traces (python -m rarag_eval.trace)")
+        print(f"fig-trust.tex not written: no trace of {CALIBRATION_SETUP} (python -m rarag_eval.trace)")
     for setup, v in cal.items():
         print(setup, {k: round(100 * x, 1) if isinstance(x, float) else x for k, x in v["sl"].items()},
               "| vote", {k: round(100 * x, 1) if isinstance(x, float) else x for k, x in v["rarag"].items()},

@@ -23,7 +23,7 @@ from .run import load_config, units
 from .thesis import ROOT, Thesis
 
 OUT = os.path.join(ROOT, "results", "traces")
-SETUPS = ("unreliable_k3", "mix5", "attackers_k1", "attackers_k2", "attackers_k3", "attackers_k4", "switch")   # Table 3's
+SETUPS = ("unreliable_k3", "mix5", "attackers_k1", "attackers_k2", "attackers_k3", "attackers_k4", "switch")
 TITLES = {"unreliable_k3": "3 unreliable of 9", "mix5": "honest mix", "attackers_k1": "1 attacker of 9",
           "attackers_k2": "2 attackers of 9", "attackers_k3": "3 attackers of 9", "attackers_k4": "4 attackers of 9",
           "switch": "late switch, 3 of 9"}
@@ -57,7 +57,7 @@ def trace(th, sc):
 
 
 def save(th, sc, dataset, seed, setup_id, cfg):
-    """Replay a built scenario and save its trace (make start does this for every unit of SETUPS)."""
+    """Replay a built scenario and save its trace."""
     body = {**trace(th, sc), "meta": {"dataset": store.dataset_name(dataset), "seed": seed, "setup": setup_id,
                                       "run": sc.run_name, "n_est": cfg["n_est"], "n_test": cfg["n_test"],
                                       "thesis_commit": th.commit}}
@@ -135,8 +135,8 @@ def figure(traces, every=10, width="4.9cm", height="4.1cm"):
             out.append(rf"\addplot[{color}, line width=3pt, opacity=0.25, forget plot] coordinates"
                        rf" {{(0,{level:.3f}) (600,{level:.3f})}};")
         errors = r"\\".join(rf"{label} {sum(e) / len(e):.2f}" for line, _, label in LINES if (e := error(t, line)))
-        out.append(rf"\node[anchor=south west, font=\scriptsize, align=left, fill=white, fill opacity=0.8, text opacity=1]"
-                   rf" at (axis cs:15,0.03) {{mean error: {errors}}};")
+        out.append(rf"\node[anchor=south west, font=\scriptsize, align=left, inner sep=1.5pt, fill=white, fill opacity=0.8,"
+                   rf" text opacity=1] at (axis cs:10,0.01) {{mean error:\\{errors}}};")
         if k == 0:
             for g, color in GROUPS.items():
                 if g in present:
