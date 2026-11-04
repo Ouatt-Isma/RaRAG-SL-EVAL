@@ -69,6 +69,8 @@ CLAIMS = [
           ("dom_centroid_wfull", "rarag_topic_online", "RA-RAG per domain, online"), ("dom_centroid_wfull", "sl_online", "SL per domain"), +1),
     Claim("15", "SL's own answering protects out-of-date trust (frozen, 3 attackers)", ["attackers_k3"], "attack",
           ("aged", "sl_offline", "RA-RAG's answering"), ("answer_aged", "sl_offline", "SL's own answering"), -1),
+    Claim("16", "SL's own answering turns attacks near a majority into abstentions (4 of 9)", ["attackers_k4"], "attack",
+          ("aged", "rarag_window", "RA-RAG's vote with a window"), ("answer_aged", "sl_online", "SL's own answering"), -1),
     # the fair domain test (F-58): placement sees only an independent labeller's labels (B), never the ones the
     # experts are built from (A)
     Claim("16a", "Fair test: trust per domain from an independent labeller's labels", ["experts"], "acc",

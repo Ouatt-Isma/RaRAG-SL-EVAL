@@ -36,14 +36,14 @@ MAIN = [
         (r"Accuracy, $a{=}3$", Claim("m2", "", ["attackers_k3"], "acc", FROZEN, AGED, +1)),
         (r"Accuracy, late switch", Claim("m3", "", ["switch"], "acc", FROZEN, AGED, +1)),
     ]),
-    (r"Scarce or stale evidence: the opinion vs.\ the rate", [
+    (r"Scarce evidence: the opinion vs.\ the rate", [
         (r"Accuracy, 5 warm-up queries", "8"),
-        (r"Attacks that succeed, stale trust", "15"),
     ]),
     (r"Honest confidence, $a{=}4$: SL's rule vs.\ RA-RAG's vote", [
         (r"Calibration error (ECE)", ("cal", "attackers_k4", "ece", -1)),
         (r"AURC", ("cal", "attackers_k4", "aurc", -1)),
         (r"Right when $c\ge0.9$", ("cal", "attackers_k4", "hi_accuracy", +1)),
+        (r"Attacks that succeed", "16"),
     ]),
     (r"Domain experts: SL per domain vs.\ RA-RAG's one trust", [
         (r"Accuracy, LLM label", Claim("m4", "", ["experts"], "acc", FROZEN, ("dom_domain_wfull", "sl_online", ""), +1)),
