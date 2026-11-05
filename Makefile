@@ -11,7 +11,7 @@ PORT ?= 22
 REMOTE ?= /workspace
 SESSION ?= eval
 
-.PHONY: setup run start attach save gpus status repair labels paper trace cost iterations claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
+.PHONY: setup run start attach save gpus status repair labels paper trace cost iterations sensitivity claims claims-check claims-status run-offline dry report report-nopdf examples test push pull clean
 
 setup:                 ## the reporting environment (matplotlib, scipy, pyyaml)
 	python3 -m venv .venv && $(PY) -m pip install -q -r requirements.txt
@@ -81,6 +81,10 @@ trace:                 ## each trust function's estimate over the test, from cac
 cost:                  ## what one query's trust update costs: RA-RAG online / window vs SL, by record size (no LLM)
 	@$(NEED_THESIS)
 	$(RUN_PY) -m rarag_eval.cost
+
+sensitivity:           ## the results at other values of lambda, u_max and delta, on exported runs (no LLM)
+	@$(NEED_THESIS)
+	$(RUN_PY) -m rarag_eval.sensitivity cache/exports
 
 iterations:            ## RA-RAG online with fewer estimator passes vs to convergence, on exported runs (no LLM)
 	@$(NEED_THESIS)

@@ -9,7 +9,7 @@ both with trust that keeps learning and forgets:
 
 Per run: the mean confidence and the accuracy it should match, the calibration error (ECE, 10 bins), the area
 under the risk-coverage curve (AURC: answers taken from the most confident down, mean error rate; lower ranks the
-errors last), how often the confidence reaches 0.9 and how often such answers are right, the share of questions SL
+errors last) and its normalized form (NAURC), how often the confidence reaches 0.9 and how often such answers are right, the share of questions SL
 answers (coverage) and RA-RAG's accuracy on its own most confident answers at that coverage."""
 import gzip
 import json
@@ -48,9 +48,17 @@ def aurc(conf, ok):
     return float((np.cumsum(err) / np.arange(1, len(err) + 1)).mean())
 
 
+def naurc(conf, ok):
+    """AURC scaled so that the best order of these answers gives 0 and a random one 1 (Cattelan and Silva, UAI 2024):
+    how well the confidence orders the answers, whatever their share of right ones."""
+    risk, best = 1 - float(np.mean(ok)), aurc(ok, ok)
+    return (aurc(conf, ok) - best) / (risk - best) if risk > best else None
+
+
 def _measures(conf, ok, n_questions):
     hi = [o for c, o in zip(conf, ok) if c >= 0.9]
     return {"mean_conf": float(np.mean(conf)), "accuracy": float(np.mean(ok)), "ece": ece(conf, ok), "aurc": aurc(conf, ok),
+            "naurc": naurc(conf, ok),
             "hi_share": len(hi) / n_questions, "hi_accuracy": float(np.mean(hi)) if hi else None}
 
 
@@ -72,6 +80,7 @@ def unit(dataset, seed, setup):
         rr = vote["rows"][name]
         pairs = [(c, o == "c") for c, o in zip(rr["conf"], rr["fair"]) if c is not None]
         ra = _measures([c for c, _ in pairs], [o for _, o in pairs], len(rr["fair"]))
+        ra["coverage"] = 1 - rr["fair"].count("x") / len(rr["fair"])   # a vote stops only when no source answers
         k = int(round(sl["coverage"] * len(pairs)))   # the vote answering only its most confident share, at SL's coverage
         top = np.argsort(-np.asarray([c for c, _ in pairs], float), kind="stable")[:k]
         ra["same_coverage_accuracy"] = float(np.mean([pairs[i][1] for i in top])) if k else None
@@ -146,4 +155,5 @@ def summary(datasets, seeds, setups=SETUPS):
         out[setup]["n"] = len(units)
         # in how many runs SL ranks its errors last better than RA-RAG
         out[setup]["aurc_sl_better"] = sum(u["sl"]["aurc"] < u["rarag"]["aurc"] for u in units)
+        out[setup]["naurc_sl_better"] = sum(u["sl"]["naurc"] < u["rarag"]["naurc"] for u in units)
     return out

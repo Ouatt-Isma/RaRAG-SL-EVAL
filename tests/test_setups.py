@@ -24,7 +24,7 @@ def test_burst_attackers_attack_in_windows_from_the_start_of_the_test():
 
 def test_adaptive_setups_get_the_attackers_analyses():
     names = [a[0] for a in analyses.plan(setup("adaptive_r20"), CFG["n_est"])]
-    assert names == analyses.PLAN["attackers"]
+    assert names == [*analyses.PLAN["attackers"], *analyses.SWEEP]
 
 
 def test_the_fair_placements_read_only_the_second_labellers_labels():

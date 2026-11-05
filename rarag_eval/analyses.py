@@ -20,11 +20,18 @@ FIXED = {   # analysis id -> (kind, settings on top of BASE)
     "detector": ("swap", {**AGED, "dc": True, "dc_response": "reset", "theta": 0.25}),   # aging + the switch detector
     "answer_aged": ("compare", AGED),
 }
+# the sensitivity of ageing against a patient attacker, on the same answers as each other (F-67 could not: the exports
+# have no late switch); 0.97 again, since these runs' answers are not the first grid's
+LAMBDAS = {f"lam{round(100 * lam)}": lam for lam in (0.9, 0.95, 0.97, 0.99)}
+for _name, _lam in LAMBDAS.items():
+    FIXED[_name] = ("swap", {**AGED, "lam_pos": _lam, "lam_neg": _lam})
+    FIXED[f"answer_{_name}"] = ("compare", {**AGED, "lam_pos": _lam, "lam_neg": _lam})
+SWEEP = [k for name in LAMBDAS for k in (name, f"answer_{name}")]
 PLAN = {    # setup kind -> the fixed analyses it gets
     "unreliable": ["plain", "aged", "window", "answer_aged"],
     "attackers": ["plain", "aged", "window", "detector", "answer_aged"],
-    "switch": ["plain", "aged", "window", "detector", "answer_aged"],
-    "adaptive": ["plain", "aged", "window", "detector", "answer_aged"],
+    "switch": ["plain", "aged", "window", "detector", "answer_aged", *SWEEP],
+    "adaptive": ["plain", "aged", "window", "detector", "answer_aged", *SWEEP],
     "mix5": ["plain", "aged", "window", "answer_aged"],
     "experts": ["plain", "answer_aged"],
 }

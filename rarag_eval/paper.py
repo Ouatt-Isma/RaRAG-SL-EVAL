@@ -6,6 +6,8 @@ number in them comes from here:
   figures/fig-attackers.tex   accuracy and attack success against the number of attackers among 9 sources (pgfplots)
   figures/fig-calibration.tex the two confidences under attack: reliability diagram and risk-coverage curve (pgfplots)
   figures/fig-warmup.tex      accuracy of the frozen trust functions against the size of the warm-up (pgfplots)
+  figures/fig-trust.tex       the trust in each kind of source with 4 attackers, one run (from results/traces/,
+                              python -m rarag_eval.trace)
 
 It also prints the main results the text quotes: our model against RA-RAG, each a paired comparison on the same
 answers: both means over every run (3 datasets x 3 seeds), the mean difference with its 95% t interval, and the runs
@@ -14,10 +16,12 @@ in which ours is ahead.
   python -m rarag_eval.paper configs/confirm.yaml --out ../6adde414c2e32fc022487a80
 """
 import argparse
+import gzip
+import json
 import os
 import statistics
 
-from . import calibration, claims, collect, stats, store
+from . import calibration, claims, collect, stats, store, trace
 from .claims import Claim
 from .run import load_config
 
@@ -38,7 +42,7 @@ MAIN = [
     ]),
     (r"Honest confidence, $a{=}4$: SL's rule vs.\ RA-RAG's vote", [
         (r"Calibration error (ECE)", ("cal", "attackers_k4", "ece", -1)),
-        (r"AURC", ("cal", "attackers_k4", "aurc", -1)),
+        (r"NAURC", ("cal", "attackers_k4", "naurc", -1)),
         (r"Right when $c\ge0.9$", ("cal", "attackers_k4", "hi_accuracy", +1)),
         (r"Attacks that succeed", "16"),
     ]),
@@ -110,19 +114,20 @@ def decision_table(cal):
     """SL's rule against RA-RAG's vote with a window and with its trust frozen, per setup; the best value of each
     measure in bold."""
     pct = lambda x: "--" if x is None else f"{100 * x:.1f}"
-    measures = [("Accuracy", lambda m, side: m[side]["answered_accuracy" if side == "sl" else "same_coverage_accuracy"], max, pct),
+    measures = [("Coverage", lambda m, side: m[side]["coverage"], max, pct),
+                ("Accuracy", lambda m, side: m[side]["answered_accuracy" if side == "sl" else "same_coverage_accuracy"], max, pct),
                 ("ECE", lambda m, side: m[side]["ece"], min, pct),
-                ("AURC", lambda m, side: m[side]["aurc"], min, pct)]
-    n = 2 + 3 * len(measures)
+                ("NAURC", lambda m, side: m[side]["naurc"], min, pct)]
+    n = 1 + 3 * len(measures)
     head = " & ".join(rf"\multicolumn{{3}}{{c}}{{{name}}}" for name, *_ in measures)
-    rules = "".join(rf"\cmidrule({'lr' if k < len(measures) - 1 else 'l'}){{{3 + 3 * k}-{5 + 3 * k}}}" for k in range(len(measures)))
-    lines = [rf"\begin{{tabular}}{{@{{}}l{'r' * (n - 1)}@{{}}}}", r"\toprule", rf" & & {head} \\", rules,
-             "Setup & Cov. & " + " & ".join(" & ".join(label for _, label in SIDES) for _ in measures) + r" \\", r"\midrule"]
+    rules = "".join(rf"\cmidrule({'lr' if k < len(measures) - 1 else 'l'}){{{2 + 3 * k}-{4 + 3 * k}}}" for k in range(len(measures)))
+    lines = [rf"\begin{{tabular}}{{@{{}}l{'r' * (n - 1)}@{{}}}}", r"\toprule", rf" & {head} \\", rules,
+             "Setup & " + " & ".join(" & ".join(label for _, label in SIDES) for _ in measures) + r" \\", r"\midrule"]
     for setup, label in SETUP_SHORT.items():
         if setup not in cal:
             continue
         m = cal[setup]
-        cells = [label, pct(m["sl"]["coverage"])]
+        cells = [label]
         for _, get, best, fmt in measures:
             vals = [get(m, side) for side, _ in SIDES]
             shown = [fmt(v) for v in vals]
@@ -248,16 +253,22 @@ def main():
         f.write(calibration_figure(rel, curves, (sl["coverage"], 1 - sl["answered_accuracy"])))
     with open(os.path.join(args.out, "figures", "fig-warmup.tex"), "w") as f:
         f.write(warmup_figure(rows))
+    traced = trace.path(f"{trace.RUN[0]}.json", trace.RUN[1], CALIBRATION_SETUP)
+    if os.path.exists(traced):   # the trust behind the calibration figure's setup, one run
+        with open(os.path.join(args.out, "figures", "fig-trust.tex"), "w") as f:
+            f.write(trace.figure({CALIBRATION_SETUP: json.load(gzip.open(traced))}, width="7.4cm", height="4.6cm"))
+    else:
+        print(f"fig-trust.tex not written: no trace of {CALIBRATION_SETUP} (python -m rarag_eval.trace)")
     for setup, v in cal.items():
         print(setup, {k: round(100 * x, 1) if isinstance(x, float) else x for k, x in v["sl"].items()},
               "| vote", {k: round(100 * x, 1) if isinstance(x, float) else x for k, x in v["rarag"].items()},
-              "| AURC SL better in", v["aurc_sl_better"], "of", v["n"])
+              "| NAURC SL better in", v["naurc_sl_better"], "of", v["n"])
     for side in ("sl", "rarag"):   # the numbers the text quotes from the figure
         print(CALIBRATION_SETUP, side, "bins (c, accuracy, share):", [tuple(round(x, 3) for x in b) for b in rel[side]])
         print(CALIBRATION_SETUP, side, "risk at coverage 0.1/0.5/end:",
               [(round(c, 2), round(r, 3)) for c, r in curves[side] if abs(c - 0.1) < 1e-6 or abs(c - 0.5) < 1e-6]
               + [tuple(round(x, 3) for x in curves[side][-1])])
-    print("written: tables/tab-decision.tex, figures/fig-attackers.tex, figures/fig-calibration.tex, figures/fig-warmup.tex")
+    print("written: tables/tab-decision.tex, figures/fig-attackers.tex, figures/fig-calibration.tex, figures/fig-warmup.tex, figures/fig-trust.tex")
 
 
 if __name__ == "__main__":
