@@ -105,7 +105,7 @@ def order(t, line, gap=GAP):
 
 def figure(traces, every=10, width="4.9cm", height="4.1cm"):
     """One plot per setup, side by side: each kind of source's mean trust before every test question, for each of
-    LINES, against its true reliability over the test (light band), with each trust function's mean error (the mean
+    LINES, against its true reliability over the test (light band), with each trust function's mean absolute error (the mean
     over the test and the sources of |trust - true reliability|) written in the plot."""
     present = {group(s) for t in traces.values() for s in t["sources"]}
     common = (rf"width={width}, height={height}, xmin=0, xmax=600, ymin=0, ymax=1, xtick={{0,200,400,600}},"
@@ -136,7 +136,7 @@ def figure(traces, every=10, width="4.9cm", height="4.1cm"):
                        rf" {{(0,{level:.3f}) (600,{level:.3f})}};")
         errors = r"\\".join(rf"{label} {sum(e) / len(e):.2f}" for line, _, label in LINES if (e := error(t, line)))
         out.append(rf"\node[anchor=south west, font=\scriptsize, align=left, inner sep=1.5pt, fill=white, fill opacity=0.8,"
-                   rf" text opacity=1] at (axis cs:10,0.01) {{mean error:\\{errors}}};")
+                   rf" text opacity=1] at (axis cs:10,0.01) {{mean absolute error (MAE):\\{errors}}};")
         if k == 0:
             for g, color in GROUPS.items():
                 if g in present:
