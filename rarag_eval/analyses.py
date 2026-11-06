@@ -33,7 +33,7 @@ PLAN = {    # setup kind -> the fixed analyses it gets
     "switch": ["plain", "aged", "window", "detector", "answer_aged", *SWEEP],
     "adaptive": ["plain", "aged", "window", "detector", "answer_aged", *SWEEP],
     "mix5": ["plain", "aged", "window", "answer_aged"],
-    "experts": ["plain", "answer_aged"],
+    "experts": ["plain", "answer_aged", "answer_domain_b", "answer_soft_b"],
 }
 PLACEMENTS = {  # how a question is placed among domains (F-53, F-56)
     "global": {"scope": False},
@@ -46,7 +46,9 @@ PLACEMENTS = {  # how a question is placed among domains (F-53, F-56)
     "centroid_b": {"scope": True, "scope_by": "centroid", "labels": "domain_b"},
     "soft_b": {"scope": True, "scope_by": "soft", "soft_temp": 0.02, "labels": "domain_b"},
 }
-CODE = {"correct": "c", "wrong": "w", "attacked": "a", "abstained": "x"}
+# trust per domain inside SL's own answering, on the independent labeller's labels; next to answer_aged, one score
+FIXED.update({f"answer_{p}": ("compare", {**AGED, **PLACEMENTS[p]}) for p in ("domain_b", "soft_b")})
+CODE ={"correct": "c", "wrong": "w", "attacked": "a", "abstained": "x"}
 
 
 def plan(setup, n_est):

@@ -8,10 +8,13 @@ Domain of a question & \multicolumn{2}{c}{NQ} & \multicolumn{2}{c}{TriviaQA} & \
 \midrule
 No domains & 58.8\,{\scriptsize$\pm$0.8} & 55.3\,{\scriptsize$\pm$0.6} & 69.4\,{\scriptsize$\pm$3.7} & 67.2\,{\scriptsize$\pm$2.2} & 56.1\,{\scriptsize$\pm$1.3} & 52.2\,{\scriptsize$\pm$2.8} \\
 Labels A (oracle) & 65.0\,{\scriptsize$\pm$1.4} & 66.3\,{\scriptsize$\pm$1.8} & 75.2\,{\scriptsize$\pm$0.4} & 74.8\,{\scriptsize$\pm$1.9} & 58.2\,{\scriptsize$\pm$0.5} & 58.3\,{\scriptsize$\pm$1.0} \\
+Labels B & 63.9\,{\scriptsize$\pm$1.0} & 62.4\,{\scriptsize$\pm$0.7} & 69.7\,{\scriptsize$\pm$0.8} & 67.3\,{\scriptsize$\pm$2.6} & 54.0\,{\scriptsize$\pm$1.3} & 53.7\,{\scriptsize$\pm$1.8} \\
+Nearest centroid (B) & 60.4\,{\scriptsize$\pm$1.5} & 59.8\,{\scriptsize$\pm$0.7} & 69.4\,{\scriptsize$\pm$2.3} & 67.6\,{\scriptsize$\pm$1.9} & 55.3\,{\scriptsize$\pm$0.8} & 53.6\,{\scriptsize$\pm$1.1} \\
+Soft weights (B) & 62.3\,{\scriptsize$\pm$1.6} & 59.8\,{\scriptsize$\pm$0.7} & 69.6\,{\scriptsize$\pm$1.1} & 67.6\,{\scriptsize$\pm$1.9} & 56.3\,{\scriptsize$\pm$1.0} & 53.6\,{\scriptsize$\pm$1.1} \\
 Nearest centroid (A) & 62.6\,{\scriptsize$\pm$0.8} & 60.2\,{\scriptsize$\pm$0.4} & 69.8\,{\scriptsize$\pm$1.5} & 68.5\,{\scriptsize$\pm$1.5} & 54.1\,{\scriptsize$\pm$2.4} & 52.2\,{\scriptsize$\pm$2.0} \\
 Soft weights (A) & 62.9\,{\scriptsize$\pm$0.9} & 60.2\,{\scriptsize$\pm$0.4} & 70.8\,{\scriptsize$\pm$1.6} & 68.5\,{\scriptsize$\pm$1.5} & 56.2\,{\scriptsize$\pm$1.8} & 52.2\,{\scriptsize$\pm$2.0} \\
 \bottomrule
 \end{tabular}
-\caption{Domain experts (right 90\% of the time in their domain, 30\% elsewhere): accuracy with trust learned per domain online, by how each question is placed among the domains, full warm-up. A: the labels the experts are built from, so placing by them is an oracle; B: an independent labeller's, the fair test. RA-RAG's estimator runs per domain on each question's top domain.}
+\caption{Domain experts (right 90\% of the time in their domain, 30\% elsewhere): accuracy with trust learned per domain online, by how each question is placed among the domains, full warm-up. A: the labels the experts are built from, so placing by them is an oracle; B: an independent labeller's, the fair test. RA-RAG's estimator runs per domain on each question's top domain. Labeller B agrees with A on 74\% of the test questions.}
 \label{tab:domains}
 \end{table}
