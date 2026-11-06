@@ -88,6 +88,13 @@ CLAIMS = [
           ("plain", "rarag", "RA-RAG frozen"), ("aged", "sl_online", "SL with aging"), -1),
     Claim("17c", "Thin attacks: SL's own answering protects out-of-date trust", ["adaptive_r10"], "attack",
           ("aged", "sl_offline", "RA-RAG's answering"), ("answer_aged", "sl_offline", "SL's own answering"), -1),
+    Claim("17d", "Thin attacks: SL's own answering beats RA-RAG's vote with a window", ["adaptive_r10"], "attack",
+          ("aged", "rarag_window", "RA-RAG with a window"), ("answer_aged", "sl_online", "SL's own answering"), -1),
+    Claim("17e", "Thin attacks: ageing alone falls below equal weights", ["adaptive_r10"], "acc",
+          ("plain", "equal", "equal weights"), ("aged", "sl_online", "SL with aging"), -1),
+    Claim("17f", "Thin attacks: asking every source is what helps, RA-RAG's frozen vote over all of them does as well",
+          ["adaptive_r10"], "attack", ("answer_aged", "sl_online", "SL's own answering"),
+          ("answer_aged", "rarag_all", "RA-RAG frozen, every source"), -1),
 ]
 
 

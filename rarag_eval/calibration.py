@@ -76,11 +76,12 @@ def unit(dataset, seed, setup):
                "conflict": decided.count("k") / len(decided),
                "answered_accuracy": answered.count("c") / len(answered) if answered else None})
     out = {"sl": sl}
-    for side, name in (("rarag", "rarag_window"), ("frozen", "rarag")):
-        rr = vote["rows"][name]
-        pairs = [(c, o == "c") for c, o in zip(rr["conf"], rr["fair"]) if c is not None]
-        ra = _measures([c for c, _ in pairs], [o for _, o in pairs], len(rr["fair"]))
-        ra["coverage"] = 1 - rr["fair"].count("x") / len(rr["fair"])   # a vote stops only when no source answers
+    for side, name, rec, codes in (("rarag", "rarag_window", vote, "fair"), ("frozen", "rarag", vote, "fair"),
+                                   ("every", "rarag_all", own, "decision")):   # every: the frozen vote over all sources
+        rr = rec["rows"][name]
+        pairs = [(c, o == "c") for c, o in zip(rr["conf"], rr[codes]) if c is not None]
+        ra = _measures([c for c, _ in pairs], [o for _, o in pairs], len(rr[codes]))
+        ra["coverage"] = 1 - rr[codes].count("x") / len(rr[codes])   # a vote stops only when no source answers
         k = int(round(sl["coverage"] * len(pairs)))   # the vote answering only its most confident share, at SL's coverage
         top = np.argsort(-np.asarray([c for c, _ in pairs], float), kind="stable")[:k]
         ra["same_coverage_accuracy"] = float(np.mean([pairs[i][1] for i in top])) if k else None

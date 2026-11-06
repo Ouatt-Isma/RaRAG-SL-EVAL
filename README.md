@@ -32,7 +32,7 @@ one round of LLM answers) per dataset and seed; its **analyses** all reuse those
 | `mix5` | 5 honest sources, 0.53–0.91 | same + warm-up subsets of 5/10/20 questions × 10 draws |
 | `attackers_k1…k4` | k build-then-betray attackers among 9 | plain, aged, window, detector, SL's own answering |
 | `switch` | 3 attackers honest until halfway through the test | same |
-| `experts` | 5 domain experts (90% in their domain, 30% elsewhere) + 2 generalists | plain, SL's own answering + trust per domain placed 7 ways × warm-up 15/60/full (below) |
+| `experts` | 5 domain experts (90% in their domain, 30% elsewhere) + 2 generalists | plain, SL's own answering (one score, labels B, soft B) + trust per domain placed 7 ways × warm-up 15/60/full (below) |
 | `adaptive_r10/r20/r30` | 3 attackers who attack only 10/20/30% of the test questions, spread thinly | as `attackers_k3` (the same at 50%) |
 | `burst_r20` | 3 attackers who attack 5 questions, then stay honest for 20 (20% in bursts) | the same |
 

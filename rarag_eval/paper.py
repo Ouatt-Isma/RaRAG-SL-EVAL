@@ -3,6 +3,7 @@ number in them comes from here:
 
   tables/tab-decision.tex     SL's own decision rule against RA-RAG's vote with a window and frozen: coverage, accuracy,
                               calibration error and how well it ranks the errors last (rarag_eval/calibration.py)
+  tables/tab-paced.tex        attacks that succeed by how often the attackers betray
   figures/fig-attackers.tex   accuracy and attack success against the number of attackers among 9 sources (pgfplots)
   figures/fig-calibration.tex the two confidences under attack: reliability diagram and risk-coverage curve (pgfplots)
   figures/fig-warmup.tex      accuracy of the frozen trust functions against the size of the warm-up (pgfplots)
@@ -27,9 +28,28 @@ from .run import load_config
 
 FROZEN = ("plain", "rarag", "RA-RAG frozen (paper)")
 AGED = ("aged", "sl_online", "SL with ageing")
+WINDOW = ("aged", "rarag_window", "RA-RAG with a window")
+RULE = ("answer_aged", "sl_online", "SL's own rule")
+EVERY = ("answer_aged", "rarag_all", "RA-RAG frozen, every source")
+EQUAL = ("plain", "equal", "equal weights")
+ONE_SCORE = ("dom_global_wfull", "sl_online", "SL, one score")
+PACES = [("adaptive_r10", "10\\%"), ("adaptive_r20", "20\\%"), ("adaptive_r30", "30\\%"), ("burst_r20", "bursts")]
+
+
+def paced(what, base, method, direction):
+    """One comparison at every pace of betrayal, as rows of MAIN."""
+    return [(f"{'Accuracy' if what == 'acc' else 'Attacks that succeed'}, {label}",
+             Claim("", "", [setup], what, base, method, direction)) for setup, label in PACES]
+
+
+def domain(base, method, direction=+1):
+    return Claim("", "", ["experts"], "acc", base, method, direction)
+
+
 # The main results, groups in reading order of the evaluation. A row is (label, comparison): a claim (its id in
-# claims.CLAIMS, or one of its own), or ("cal", setup, measure, direction), a measure of calibration.unit with
-# SL's rule against RA-RAG's vote.
+# claims.CLAIMS, or one of its own), or ("cal", setup, measure, direction[, side]), a measure of calibration.unit with
+# SL's rule against RA-RAG's vote (side, a vote of calibration.unit, by default the one with a window); measure may be
+# a pair (SL's, the vote's).
 MAIN = [
     (r"A patient adversary: SL with ageing vs.\ RA-RAG's frozen trust", [
         (r"Attacks that succeed, $a{=}2$", "3"),
@@ -51,7 +71,32 @@ MAIN = [
         (r"Accuracy, nearest centroid",
          Claim("m5", "", ["experts"], "acc", FROZEN, ("dom_centroid_wfull", "sl_online", ""), +1)),
     ]),
+    (r"Paced betrayal: SL's rule vs.\ SL's ageing in RA-RAG's vote", paced("attack", AGED, RULE, -1)),
+    (r"Paced betrayal: SL's rule vs.\ RA-RAG's vote with a window", paced("attack", WINDOW, RULE, -1)),
+    (r"Paced betrayal: SL's rule vs.\ RA-RAG's frozen vote over every source", paced("attack", EVERY, RULE, -1)),
+    (r"Paced betrayal: the same window, SL vs.\ RA-RAG", paced("attack", WINDOW, ("window", "sl_online", ""), -1)
+     + paced("acc", WINDOW, ("window", "sl_online", ""), +1)),
+    (r"Paced betrayal: SL's ageing vs.\ equal weights", paced("acc", EQUAL, AGED, +1)),
+    (r"Paced betrayal: confidence, SL's rule vs.\ RA-RAG's vote with a window",
+     [(f"{name}, {label}", ("cal", setup, measure, sign)) for setup, label in PACES
+      for name, measure, sign in (("ECE", "ece", -1), (r"Right when $c\ge0.9$", "hi_accuracy", +1))]),
+    (r"Paced betrayal: confidence, SL's rule vs.\ RA-RAG's frozen vote over every source",
+     [(f"{name}, {label}", ("cal", setup, measure, sign, "every")) for setup, label in [*PACES, ("attackers_k4", "4 of 9")]
+      for name, measure, sign in (("ECE", "ece", -1), (r"Right when $c\ge0.9$", "hi_accuracy", +1),
+                                  ("Accuracy at our coverage", ("answered_accuracy", "same_coverage_accuracy"), +1))]),
+    (r"Fair domain test: independent labels (B) on the experts", [
+        (r"Soft B vs.\ RA-RAG frozen", domain(FROZEN, ("dom_soft_b_wfull", "sl_online", ""))),
+        (r"Soft B vs.\ one score", domain(ONE_SCORE, ("dom_soft_b_wfull", "sl_online", ""))),
+        (r"Labels B vs.\ one score", domain(ONE_SCORE, ("dom_domain_b_wfull", "sl_online", ""))),
+        (r"Labels A vs.\ labels B", domain(("dom_domain_b_wfull", "sl_online", ""), ("dom_domain_wfull", "sl_online", ""))),
+        (r"Soft A vs.\ soft B", domain(("dom_soft_b_wfull", "sl_online", ""), ("dom_soft_wfull", "sl_online", ""))),
+        (r"Labels B vs.\ RA-RAG per domain", domain(("dom_domain_b_wfull", "rarag_topic_online", ""), ("dom_domain_b_wfull", "sl_online", ""))),
+        (r"Soft B vs.\ RA-RAG per domain", domain(("dom_soft_b_wfull", "rarag_topic_online", ""), ("dom_soft_b_wfull", "sl_online", ""))),
+    ]),
 ]
+PACED_ROWS = [("plain", "rarag", "RA-RAG, frozen"), ("aged", "rarag_window", "RA-RAG, window"),
+              ("answer_aged", "rarag_all", "RA-RAG, frozen, all 9"), ("aged", "sl_online", "SL, ageing"),
+              ("plain", "equal", "Equal weights"), ("answer_aged", "sl_online", "Our rule")]
 CALIBRATION_SETUP = "attackers_k4"   # the figure's setup: the attackers are close to a majority
 DATASETS = ["NQ_paper", "TQA_paper", "HotpotQA_paper"]
 SEEDS = [0, 1, 2]
@@ -77,10 +122,12 @@ def num(x, digits=1, sign=True):
 def compare(comparison, ix):
     """One main result over every run: {"base", "ours"} means and the aggregate of the paired differences."""
     if isinstance(comparison, tuple):
-        _, setup, measure, direction = comparison
+        _, setup, measure, direction, *side = comparison
+        side = side[0] if side else "rarag"
+        mine, theirs = measure if isinstance(measure, tuple) else (measure, measure)
         units = [u for d in DATASETS for s in SEEDS if (u := calibration.unit(d, s, setup))
-                 and u["sl"][measure] is not None and u["rarag"][measure] is not None]
-        base, ours = [u["rarag"][measure] for u in units], [u["sl"][measure] for u in units]
+                 and u["sl"][mine] is not None and u[side][theirs] is not None]
+        base, ours = [u[side][theirs] for u in units], [u["sl"][mine] for u in units]
         diffs = [o - b for b, o in zip(base, ours)]
     else:
         claim = next(c for c in claims.CLAIMS if c.id == comparison) if isinstance(comparison, str) else comparison
@@ -104,6 +151,23 @@ def main_results(ix):
                 ci = f" [{100 * a['lo']:+.1f}, {100 * a['hi']:+.1f}]" if a["lo"] is not None else ""
                 lines.append(f"  {label}: RA-RAG {100 * a['base']:.1f}, ours {100 * a['ours']:.1f},"
                              f" diff {100 * a['mean']:+.1f}{ci}, {a['holds']}/{a['n']} runs")
+    return "\n".join(lines)
+
+
+def paced_counts(rows, ix):
+    """Per pace of betrayal, the numbers the text quotes: the attacks that land per run against SL's ageing in RA-RAG's
+    vote, and the share that would succeed if SL's rule answered with its top candidate instead of abstaining."""
+    lines = ["Paced betrayal: attacks landed per run, and the attacks that succeed if SL's rule never abstained"]
+    for setup, label in [*PACES, ("attackers_k3", "50\\%"), ("attackers_k4", "4 of 9")]:
+        landed = [r["attack"] * r["n_target"] for r in rows if r["setup"] == setup and r["analysis"] == "aged"
+                  and r["row"] == "sl_online" and r.get("attack") is not None]
+        forced = []
+        for d in DATASETS:
+            for s in SEEDS:
+                rec = ix[(d, s, setup, "answer_aged")]
+                top = [t for t, q in zip(rec["rows"]["sl_online"]["top"], rec["questions"]) if q["target"]]
+                forced.append(top.count("a") / len(top))
+        lines.append(f"  {label}: {statistics.mean(landed):.1f} attacks per run, {100 * statistics.mean(forced):.1f}% without abstaining")
     return "\n".join(lines)
 
 
@@ -137,6 +201,28 @@ def decision_table(cal):
             cells += [bold(x) if x == top else x for x in shown]
         lines.append(" & ".join(cells) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines) + "\n"
+
+
+def paced_table(rows):
+    """Attacks that succeed by how often the attackers betray, the lowest of each column in bold, and the coverage
+    of our rule, which alone abstains."""
+    setups = [setup for setup, _ in PACES] + ["attackers_k3", "attackers_k4"]
+
+    def mean(setup, analysis, row, metric):
+        xs = [r[metric] for r in rows if r["setup"] == setup and r["analysis"] == analysis and r["row"] == row
+              and r.get(metric) is not None]
+        return 100 * statistics.mean(xs)
+    table = [[mean(s, analysis, row, "attack") for s in setups] for analysis, row, _ in PACED_ROWS]
+    lows = [min(col) for col in zip(*table)]
+    lines = [r"\begin{tabular}{@{}lrrrrrr@{}}", r"\toprule",
+             r" & \multicolumn{5}{c}{3 of 9, betraying on} & 4 of 9 \\", r"\cmidrule(lr){2-6}\cmidrule(l){7-7}",
+             r"Trust & 10\% & 20\% & 30\% & bursts & 50\% & 50\% \\", r"\midrule"]
+    for (_, _, label), vals in zip(PACED_ROWS, table):
+        cells = [rf"\textbf{{{v:.1f}}}" if v == low else f"{v:.1f}" for v, low in zip(vals, lows)]
+        lines.append(" & ".join([label, *cells]) + r" \\")
+    cover = [f"{mean(s, 'answer_aged', 'sl_online', 'coverage'):.1f}" for s in setups]
+    lines += [r"\midrule", " & ".join(["Our rule, coverage", *cover]) + r" \\", r"\bottomrule", r"\end{tabular}"]
     return "\n".join(lines) + "\n"
 
 
@@ -242,8 +328,11 @@ def main():
         os.makedirs(os.path.join(args.out, sub), exist_ok=True)
     head = "% Generated by rarag-sl-eval (python -m rarag_eval.paper) from the saved results; do not edit by hand.\n"
     print(main_results(index))
+    print(paced_counts(rows, index))
     with open(os.path.join(args.out, "tables", "tab-decision.tex"), "w") as f:
         f.write(head + decision_table(cal))
+    with open(os.path.join(args.out, "tables", "tab-paced.tex"), "w") as f:
+        f.write(head + paced_table(rows))
     with open(os.path.join(args.out, "figures", "fig-attackers.tex"), "w") as f:
         f.write(attackers_figure(rows))
     rel = calibration.reliability(DATASETS, SEEDS, CALIBRATION_SETUP)
@@ -268,7 +357,7 @@ def main():
         print(CALIBRATION_SETUP, side, "risk at coverage 0.1/0.5/end:",
               [(round(c, 2), round(r, 3)) for c, r in curves[side] if abs(c - 0.1) < 1e-6 or abs(c - 0.5) < 1e-6]
               + [tuple(round(x, 3) for x in curves[side][-1])])
-    print("written: tables/tab-decision.tex, figures/fig-attackers.tex, figures/fig-calibration.tex, figures/fig-warmup.tex, figures/fig-trust.tex")
+    print("written: tables/tab-decision.tex, tables/tab-paced.tex, figures/fig-attackers.tex, figures/fig-calibration.tex, figures/fig-warmup.tex, figures/fig-trust.tex")
 
 
 if __name__ == "__main__":
